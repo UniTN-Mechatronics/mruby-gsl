@@ -17,78 +17,49 @@
 /*                                                                         */
 /***************************************************************************/
 
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <vector>
-#include <stdlib.h>
-#include <sys/param.h>
-#include <time.h>
-#include <gsl/gsl_vector.h>
-
-#include "mruby.h"
-#include "mruby/variable.h"
-#include "mruby/string.h"
-#include "mruby/data.h"
-#include "mruby/class.h"
-#include "mruby/value.h"
-#include "mruby/array.h"
-#include "mruby/numeric.h"
-#include "mruby/compile.h"
-
-
-
-// Struct holding data:
-typedef struct {
-  double d;
-  int i;
-  std::vector<int> first;
-  double *ary;
-} play_data_s;
+#include "vector.h"
 
 // Garbage collector handler, for play_data struct
 // if play_data contains other dynamic data, free it too!
 // Check it with GC.start
-static void play_data_destructor(mrb_state *mrb, void *p_) {
-  play_data_s *pd = (play_data_s *)p_;
-  free(pd->ary);
-  free(pd);
+void vector_destructor(mrb_state *mrb, void *p_) {
+  gsl_vector *v = (gsl_vector *)p_;
+  gsl_vector_free(v);
   // or simply:
   // mrb_free(mrb, pd);
 };
 
 // Creating data type and reference for GC, in a const struct
-const struct mrb_data_type play_data_type = {"play_data", play_data_destructor};
+const struct mrb_data_type vector_data_type = {"vector_data",
+                                               vector_destructor};
 
 // Utility function for getting the struct out of the wrapping IV @data
-static void mrb_play_get_data(mrb_state *mrb, mrb_value self,
-                              play_data_s **data) {
+void mrb_vector_get_data(mrb_state *mrb, mrb_value self,
+                                gsl_vector **data) {
   mrb_value data_value;
   data_value = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@data"));
 
   // Loading data from data_value into p_data:
-  Data_Get_Struct(mrb, data_value, &play_data_type, *data);
+  Data_Get_Struct(mrb, data_value, &vector_data_type, *data);
   if (!*data)
     mrb_raise(mrb, E_RUNTIME_ERROR, "Could not access @data");
 }
 
+
 // Data Initializer C function (not exposed!)
-static void mrb_play_init(mrb_state *mrb, mrb_value self, double d) {
+static void mrb_vector_init(mrb_state *mrb, mrb_value self, mrb_int n) {
   mrb_value data_value; // this IV holds the data
-  play_data_s *p_data;  // pointer to the C struct
+  gsl_vector *p_data;   // pointer to the C struct
 
   data_value = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@data"));
 
   // if @data already exists, free its content:
   if (!mrb_nil_p(data_value)) {
-    Data_Get_Struct(mrb, data_value, &play_data_type, p_data);
+    Data_Get_Struct(mrb, data_value, &vector_data_type, p_data);
     free(p_data);
   }
   // Allocate and zero-out the data struct:
-  p_data = (play_data_s *)malloc(sizeof(play_data_s));
-  memset(p_data, 0, sizeof(play_data_s));
+  p_data = gsl_vector_calloc(n);
   if (!p_data)
     mrb_raise(mrb, E_RUNTIME_ERROR, "Could not allocate @data");
 
@@ -96,24 +67,242 @@ static void mrb_play_init(mrb_state *mrb, mrb_value self, double d) {
   mrb_iv_set(
       mrb, self, mrb_intern_lit(mrb, "@data"), // set @data
       mrb_obj_value(                           // with value hold in struct
-          Data_Wrap_Struct(mrb, mrb->object_class, &play_data_type, p_data)));
-
-  // Now set values into struct:
-  p_data->d = d;
-  p_data->i = 10;
-  p_data->ary = (double *)malloc(sizeof(double) * p_data->i);
-  memset(p_data->ary, 0, sizeof(double) * p_data->i);
+          Data_Wrap_Struct(mrb, mrb->object_class, &vector_data_type, p_data)));
 }
 
-static mrb_value mrb_play_initialize(mrb_state *mrb, mrb_value self) {
-  mrb_value d = mrb_nil_value();
-  mrb_get_args(mrb, "o", &d);
+static mrb_value mrb_vector_initialize(mrb_state *mrb, mrb_value self) {
+  mrb_int n;
+  mrb_get_args(mrb, "i", &n);
 
   // Call strcut initializer:
-  mrb_play_init(mrb, self, mrb_to_flo(mrb, d));
+  mrb_vector_init(mrb, self, n);
   return mrb_nil_value();
 }
 
+static mrb_value mrb_vector_all(mrb_state *mrb, mrb_value self) {
+  mrb_float v;
+  gsl_vector *p_vec = NULL;
+
+  mrb_get_args(mrb, "f", &v);
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  gsl_vector_set_all(p_vec, v);
+  return self;
+}
+
+static mrb_value mrb_vector_zero(mrb_state *mrb, mrb_value self) {
+  gsl_vector *p_vec = NULL;
+
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  gsl_vector_set_zero(p_vec);
+  return self;
+}
+
+static mrb_value mrb_vector_basis(mrb_state *mrb, mrb_value self) {
+  mrb_int i;
+  gsl_vector *p_vec = NULL;
+
+  mrb_get_args(mrb, "i", &i);
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  gsl_vector_set_basis(p_vec, i);
+  return self;
+}
+
+static mrb_value mrb_vector_equal(mrb_state *mrb, mrb_value self) {
+  mrb_value other;
+  gsl_vector *p_vec, *p_vec_other;
+  mrb_get_args(mrb, "o", &other);
+
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  mrb_vector_get_data(mrb, other, &p_vec_other);
+  if (p_vec->size != p_vec_other->size) {
+    mrb_raise(mrb, E_VECTOR_ERROR, "Vector indexes don't match!");
+  }
+  if (1 == gsl_vector_equal(p_vec, p_vec_other))
+    return mrb_true_value();
+  else
+    return mrb_false_value();
+}
+
+static mrb_value mrb_vector_get_i(mrb_state *mrb, mrb_value self) {
+  mrb_int i = 0;
+  gsl_vector *p_vec = NULL;
+
+  mrb_get_args(mrb, "i", &i);
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  if (i >= p_vec->size) {
+    mrb_raise(mrb, E_VECTOR_ERROR, "Vector index out of range!");
+  }
+  return mrb_float_value(mrb, gsl_vector_get(p_vec, (size_t)i));
+}
+
+static mrb_value mrb_vector_set_i(mrb_state *mrb, mrb_value self) {
+  mrb_int i = 0;
+  mrb_float f;
+  gsl_vector *p_vec = NULL;
+
+  mrb_get_args(mrb, "if", &i, &f);
+
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  if (i >= p_vec->size) {
+    mrb_raise(mrb, E_VECTOR_ERROR, "Vector index out of range!");
+  }
+  gsl_vector_set(p_vec, (size_t)i, (double)f);
+  return mrb_float_value(mrb, f);
+}
+
+static mrb_value mrb_vector_to_a(mrb_state *mrb, mrb_value self) {
+  int i;
+  mrb_value ary = mrb_nil_value();
+  gsl_vector *p_vec = NULL;
+  mrb_float e;
+  mrb_vector_get_data(mrb, self, &p_vec);
+  ary = mrb_ary_new_capa(mrb, p_vec->size);
+  for (i = 0; i < p_vec->size; i++) {
+    e = *(p_vec->data + i * p_vec->stride);
+    mrb_ary_set(mrb, ary, i, mrb_float_value(mrb, e));
+  }
+  return ary;
+}
+
+static mrb_value mrb_vector_length(mrb_state *mrb, mrb_value self) {
+  gsl_vector *p_vec = NULL;
+  mrb_vector_get_data(mrb, self, &p_vec);
+  return mrb_fixnum_value(p_vec->size);
+}
+
+static mrb_value mrb_vector_max(mrb_state *mrb, mrb_value self) {
+  gsl_vector *p_vec = NULL;
+  mrb_vector_get_data(mrb, self, &p_vec);
+  return mrb_float_value(mrb, gsl_vector_max(p_vec));
+}
+
+static mrb_value mrb_vector_min(mrb_state *mrb, mrb_value self) {
+  gsl_vector *p_vec = NULL;
+  mrb_vector_get_data(mrb, self, &p_vec);
+  return mrb_float_value(mrb, gsl_vector_min(p_vec));
+}
+
+static mrb_value mrb_vector_max_index(mrb_state *mrb, mrb_value self) {
+  gsl_vector *p_vec = NULL;
+  mrb_vector_get_data(mrb, self, &p_vec);
+  return mrb_fixnum_value(gsl_vector_max_index(p_vec));
+}
+
+static mrb_value mrb_vector_min_index(mrb_state *mrb, mrb_value self) {
+  gsl_vector *p_vec = NULL;
+  mrb_vector_get_data(mrb, self, &p_vec);
+  return mrb_fixnum_value(gsl_vector_min_index(p_vec));
+}
+
+static mrb_value mrb_vector_add(mrb_state *mrb, mrb_value self) {
+  mrb_value other;
+  gsl_vector *p_vec, *p_vec_other;
+  mrb_get_args(mrb, "o", &other);
+
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  mrb_vector_get_data(mrb, other, &p_vec_other);
+  if (p_vec->size != p_vec_other->size) {
+    mrb_raise(mrb, E_VECTOR_ERROR, "Vector indexes don't match!");
+  }
+  gsl_vector_add(p_vec, p_vec_other);
+  return self;
+}
+
+static mrb_value mrb_vector_sub(mrb_state *mrb, mrb_value self) {
+  mrb_value other;
+  gsl_vector *p_vec, *p_vec_other;
+  mrb_get_args(mrb, "o", &other);
+
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  mrb_vector_get_data(mrb, other, &p_vec_other);
+  if (p_vec->size != p_vec_other->size) {
+    mrb_raise(mrb, E_VECTOR_ERROR, "Vector indexes don't match!");
+  }
+  gsl_vector_sub(p_vec, p_vec_other);
+  return self;
+}
+
+static mrb_value mrb_vector_mul(mrb_state *mrb, mrb_value self) {
+  mrb_value other;
+  gsl_vector *p_vec, *p_vec_other;
+  mrb_get_args(mrb, "o", &other);
+
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  mrb_vector_get_data(mrb, other, &p_vec_other);
+  if (p_vec->size != p_vec_other->size) {
+    mrb_raise(mrb, E_VECTOR_ERROR, "Vector indexes don't match!");
+  }
+  gsl_vector_mul(p_vec, p_vec_other);
+  return self;
+}
+
+static mrb_value mrb_vector_div(mrb_state *mrb, mrb_value self) {
+  mrb_value other;
+  gsl_vector *p_vec, *p_vec_other;
+  mrb_get_args(mrb, "o", &other);
+
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  mrb_vector_get_data(mrb, other, &p_vec_other);
+  if (p_vec->size != p_vec_other->size) {
+    mrb_raise(mrb, E_VECTOR_ERROR, "Vector indexes don't match!");
+  }
+  gsl_vector_div(p_vec, p_vec_other);
+  return self;
+}
+
+static mrb_value mrb_vector_scale(mrb_state *mrb, mrb_value self) {
+  gsl_vector *p_vec;
+  mrb_float factor;
+  mrb_get_args(mrb, "f", &factor);
+
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  gsl_vector_scale(p_vec, factor);
+  return self;
+}
+
+static mrb_value mrb_vector_add_scalar(mrb_state *mrb, mrb_value self) {
+  gsl_vector *p_vec;
+  mrb_float offset;
+  mrb_get_args(mrb, "f", &offset);
+
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  gsl_vector_add_constant(p_vec, offset);
+  return self;
+}
+
+static mrb_value mrb_vector_swap(mrb_state *mrb, mrb_value self) {
+  gsl_vector *p_vec;
+  mrb_int i, j;
+  mrb_get_args(mrb, "ii", &i, &j);
+
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  gsl_vector_swap_elements(p_vec, i, j);
+  return self;
+}
+
+static mrb_value mrb_vector_reverse(mrb_state *mrb, mrb_value self) {
+  gsl_vector *p_vec;
+
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  gsl_vector_reverse(p_vec);
+  return self;
+}
+
+#if 0
 static mrb_value mrb_play_d(mrb_state *mrb, mrb_value self) {
   play_data_s *p_data = NULL;
 
@@ -124,18 +313,6 @@ static mrb_value mrb_play_d(mrb_state *mrb, mrb_value self) {
   return mrb_float_value(mrb, p_data->d);
 }
 
-static mrb_value mrb_play_set_d(mrb_state *mrb, mrb_value self) {
-  mrb_value d_value = mrb_nil_value();
-  play_data_s *p_data = NULL;
-
-  mrb_get_args(mrb, "o", &d_value);
-
-  // call utility for unwrapping @data into p_data:
-  mrb_play_get_data(mrb, self, &p_data);
-
-  p_data->d = mrb_to_flo(mrb, d_value);
-  return d_value;
-}
 
 static mrb_value mrb_play_ary(mrb_state *mrb, mrb_value self) {
   play_data_s *p_data = NULL;
@@ -180,23 +357,38 @@ static mrb_value mrb_play_set_ary(mrb_state *mrb, mrb_value self) {
   return mrb_fixnum_value(i);
 }
 
-void mrb_mruby_gsl_gem_init(mrb_state *mrb) {
+#endif
+
+void mrb_gsl_vector_init(mrb_state *mrb) {
   struct RClass *gsl;
 
-  mrb_load_string(mrb,
-                  "class SleepError < Exception; attr_reader :actual; end");
+  mrb_load_string(mrb, "class VectorError < Exception; end");
 
-  play = mrb_define_class(mrb, "Play", mrb->object_class);
-  mrb_define_method(mrb, play, "check", mrb_play_check, MRB_ARGS_NONE());
-  mrb_define_method(mrb, play, "initialize", mrb_play_initialize,
+  gsl = mrb_define_class(mrb, "Vector", mrb->object_class);
+  mrb_define_method(mrb, gsl, "all", mrb_vector_all, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "zero", mrb_vector_zero, MRB_ARGS_NONE());
+  mrb_define_method(mrb, gsl, "basis", mrb_vector_basis, MRB_ARGS_REQ(1));
+
+  mrb_define_method(mrb, gsl, "initialize", mrb_vector_initialize,
                     MRB_ARGS_NONE());
-  mrb_define_method(mrb, play, "d", mrb_play_d, MRB_ARGS_NONE());
-  mrb_define_method(mrb, play, "d=", mrb_play_set_d, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, play, "ary", mrb_play_ary, MRB_ARGS_NONE());
-  mrb_define_method(mrb, play, "ary=", mrb_play_set_ary, MRB_ARGS_REQ(1));
-
+  mrb_define_method(mrb, gsl, "===", mrb_vector_equal, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "[]", mrb_vector_get_i, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "[]=", mrb_vector_set_i, MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, gsl, "to_a", mrb_vector_to_a, MRB_ARGS_NONE());
+  mrb_define_method(mrb, gsl, "length", mrb_vector_length, MRB_ARGS_NONE());
+  mrb_define_method(mrb, gsl, "max", mrb_vector_max, MRB_ARGS_NONE());
+  mrb_define_method(mrb, gsl, "min", mrb_vector_min, MRB_ARGS_NONE());
+  mrb_define_method(mrb, gsl, "max_index", mrb_vector_max_index,
+                    MRB_ARGS_NONE());
+  mrb_define_method(mrb, gsl, "min_index", mrb_vector_min_index,
+                    MRB_ARGS_NONE());
+  mrb_define_method(mrb, gsl, "add", mrb_vector_add, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "sub", mrb_vector_sub, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "mul", mrb_vector_mul, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "div", mrb_vector_div, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "scale", mrb_vector_scale, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "add_scalar", mrb_vector_add_scalar,
+                    MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "swap!", mrb_vector_swap, MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, gsl, "reverse!", mrb_vector_reverse, MRB_ARGS_NONE());
 }
-
-void mrb_mruby_gsl_gem_final(mrb_state *mrb) {}
-
-

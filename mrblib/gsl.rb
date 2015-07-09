@@ -17,6 +17,55 @@
 #                                                                         #
 #*************************************************************************#
 
-class Play
-
+class Vector
+  include Enumerable
+  include Comparable
+  
+  def self.[](*ary)
+    raise ArgumentError unless ary.kind_of? Array
+    v = Vector.new(ary.size)
+    ary.each_with_index {|e,i| v[i] = e.to_f}
+    return v
+  end
+  
+  alias :- :sub
+  alias :/ :div
+  alias :size :length
+  
+  def *(other)
+    case other
+    when self.class
+      self.mul(other)
+    when Numeric
+      self.scale(other)
+    else
+      raise ArgmentError, "Only Vectors or Numerics"
+    end
+  end
+  
+  def +(other)
+    case other
+    when self.class
+      self.add(other)
+    when Numeric
+      self.add_scalar(other)
+    else
+      raise ArgmentError, "Only Vectors or Numerics"
+    end
+  end
+  
+  def <=>(other)
+    self.length <=> other.length
+  end
+  
+  def each
+    raise ArgumentError, "Need a block" unless block_given?
+    self.length.times do |i|
+      yield self[i]
+    end
+  end
+  
+  def inspect
+    "V#{self.to_a}"
+  end
 end

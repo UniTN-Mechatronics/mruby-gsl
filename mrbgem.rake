@@ -11,8 +11,8 @@ MRuby::Gem::Specification.new('mruby-gsl') do |spec|
     spec.cc.command = 'gcc' # clang does not work!
     spec.cc.flags << %w||
     spec.cc.include_paths << "/usr/local/include"
-    
     spec.linker.library_paths << "/usr/local/lib"
+    spec.linker.libraries << %w|gsl|
   else
     # complete for your case scenario
   end
