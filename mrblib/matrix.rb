@@ -17,55 +17,72 @@
 #                                                                         #
 #*************************************************************************#
 
-class Vector
+class Matrix
   include Enumerable
   include Comparable
+  attr_reader :cols, :rows
+  attr_accessor :format
   
   def self.[](*ary)
     raise ArgumentError unless ary.kind_of? Array
-    v = Vector.new(ary.size)
-    ary.each_with_index {|e,i| v[i] = e.to_f}
-    return v
+    m = Matrix.new(ary.size, ary[0].size)
+    ary.each_with_index do |row,i|
+      row.each_with_index {|e,j| m[i,j] = e.to_f}
+    end
+    return m
   end
   
-  alias :- :sub
-  alias :/ :div
-  alias :size :length
-  
-  def *(other)
-    case other
-    when self.class
-      self.mul(other)
-    when Numeric
-      self.scale(other)
-    else
-      raise ArgmentError, "Only Vectors or Numerics"
+  def to_a
+    rows = []
+    cols = []
+    @rows.times do |i|
+      cols = []
+      @cols.times do |j|
+        cols << self[i,j]
+      end
+      rows << cols
     end
-  end
-  
-  def +(other)
-    case other
-    when self.class
-      self.add(other)
-    when Numeric
-      self.add_scalar(other)
-    else
-      raise ArgmentError, "Only Vectors or Numerics"
-    end
+    return rows
   end
   
   def <=>(other)
-    self.length <=> other.length
+    (@rows * @cols) <=> (other.rows * other.cols)
   end
   
   def each
     raise ArgumentError, "Need a block" unless block_given?
-    self.length.times do |i|
-      yield self[i]
+    @rows.times do |i|
+      @cols.times do |j|
+        yield self[i,j]
+      end
+    end
+  end
+  
+  def each_col
+    raise ArgumentError, "Need a block" unless block_given?
+    @cols.times do |j|
+      yield self.col(j), j
+    end
+  end
+  
+  def each_row
+    raise ArgumentError, "Need a block" unless block_given?
+    @rows.times do |i|
+      yield self.row(i), i
     end
   end
   
   def inspect
-    "V#{self.to_a}"
+    "M#{self.to_a}"
+  end
+  
+  def to_s
+    lines = []
+    mask = "⎜ #{(@format + ' ') * @cols}⎟"
+    self.each_row do |r|
+      lines << (mask % r.to_a)
+    end
+    return "⎡#{' ' * (lines[0].length-6)}⎤\n" + lines.join("\n") + "\n⎣#{' ' * (lines[0].length-6)}⎦\n"
   end
 end
+

@@ -45,6 +45,8 @@ void mrb_vector_get_data(mrb_state *mrb, mrb_value self,
     mrb_raise(mrb, E_RUNTIME_ERROR, "Could not access @data");
 }
 
+#pragma mark -
+#pragma mark Init and accessing
 
 // Data Initializer C function (not exposed!)
 static void mrb_vector_init(mrb_state *mrb, mrb_value self, mrb_int n) {
@@ -76,6 +78,8 @@ static mrb_value mrb_vector_initialize(mrb_state *mrb, mrb_value self) {
 
   // Call strcut initializer:
   mrb_vector_init(mrb, self, n);
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@length"), mrb_fixnum_value(n));
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@format"), mrb_str_new_cstr(mrb, "%10.3f"));
   return mrb_nil_value();
 }
 
@@ -118,9 +122,6 @@ static mrb_value mrb_vector_equal(mrb_state *mrb, mrb_value self) {
   // call utility for unwrapping @data into p_data:
   mrb_vector_get_data(mrb, self, &p_vec);
   mrb_vector_get_data(mrb, other, &p_vec_other);
-  if (p_vec->size != p_vec_other->size) {
-    mrb_raise(mrb, E_VECTOR_ERROR, "Vector indexes don't match!");
-  }
   if (1 == gsl_vector_equal(p_vec, p_vec_other))
     return mrb_true_value();
   else
@@ -170,11 +171,10 @@ static mrb_value mrb_vector_to_a(mrb_state *mrb, mrb_value self) {
   return ary;
 }
 
-static mrb_value mrb_vector_length(mrb_state *mrb, mrb_value self) {
-  gsl_vector *p_vec = NULL;
-  mrb_vector_get_data(mrb, self, &p_vec);
-  return mrb_fixnum_value(p_vec->size);
-}
+
+
+#pragma mark -
+#pragma mark Properties
 
 static mrb_value mrb_vector_max(mrb_state *mrb, mrb_value self) {
   gsl_vector *p_vec = NULL;
@@ -200,6 +200,10 @@ static mrb_value mrb_vector_min_index(mrb_state *mrb, mrb_value self) {
   return mrb_fixnum_value(gsl_vector_min_index(p_vec));
 }
 
+
+#pragma mark -
+#pragma mark Operations
+
 static mrb_value mrb_vector_add(mrb_state *mrb, mrb_value self) {
   mrb_value other;
   gsl_vector *p_vec, *p_vec_other;
@@ -224,7 +228,7 @@ static mrb_value mrb_vector_sub(mrb_state *mrb, mrb_value self) {
   mrb_vector_get_data(mrb, self, &p_vec);
   mrb_vector_get_data(mrb, other, &p_vec_other);
   if (p_vec->size != p_vec_other->size) {
-    mrb_raise(mrb, E_VECTOR_ERROR, "Vector indexes don't match!");
+    mrb_raise(mrb, E_VECTOR_ERROR, "Vector dimensions don't match!");
   }
   gsl_vector_sub(p_vec, p_vec_other);
   return self;
@@ -280,6 +284,38 @@ static mrb_value mrb_vector_add_scalar(mrb_state *mrb, mrb_value self) {
   mrb_vector_get_data(mrb, self, &p_vec);
   gsl_vector_add_constant(p_vec, offset);
   return self;
+}
+
+static mrb_value mrb_vector_prod(mrb_state *mrb, mrb_value self) {
+  mrb_value other;
+  gsl_vector *p_vec, *p_vec_other;
+  mrb_float res;
+  mrb_get_args(mrb, "o", &other);
+
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  mrb_vector_get_data(mrb, other, &p_vec_other);
+  if (p_vec->size != p_vec_other->size) {
+    mrb_raise(mrb, E_VECTOR_ERROR, "Vector indexes don't match!");
+  }
+  gsl_blas_ddot(p_vec, p_vec_other, &res);
+  return mrb_float_value(mrb, res);
+}
+
+static mrb_value mrb_vector_norm(mrb_state *mrb, mrb_value self) {
+  gsl_vector *p_vec;
+
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  return mrb_float_value(mrb, gsl_blas_dnrm2(p_vec));
+}
+
+static mrb_value mrb_vector_sum(mrb_state *mrb, mrb_value self) {
+  gsl_vector *p_vec;
+
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  return mrb_float_value(mrb, gsl_blas_dasum(p_vec));
 }
 
 static mrb_value mrb_vector_swap(mrb_state *mrb, mrb_value self) {
@@ -359,6 +395,8 @@ static mrb_value mrb_play_set_ary(mrb_state *mrb, mrb_value self) {
 
 #endif
 
+
+
 void mrb_gsl_vector_init(mrb_state *mrb) {
   struct RClass *gsl;
 
@@ -375,7 +413,6 @@ void mrb_gsl_vector_init(mrb_state *mrb) {
   mrb_define_method(mrb, gsl, "[]", mrb_vector_get_i, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "[]=", mrb_vector_set_i, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, gsl, "to_a", mrb_vector_to_a, MRB_ARGS_NONE());
-  mrb_define_method(mrb, gsl, "length", mrb_vector_length, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "max", mrb_vector_max, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "min", mrb_vector_min, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "max_index", mrb_vector_max_index,
@@ -386,6 +423,9 @@ void mrb_gsl_vector_init(mrb_state *mrb) {
   mrb_define_method(mrb, gsl, "sub", mrb_vector_sub, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "mul", mrb_vector_mul, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "div", mrb_vector_div, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "*", mrb_vector_prod, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "norm", mrb_vector_norm, MRB_ARGS_NONE());
+  mrb_define_method(mrb, gsl, "sum", mrb_vector_sum, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "scale", mrb_vector_scale, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "add_scalar", mrb_vector_add_scalar,
                     MRB_ARGS_REQ(1));

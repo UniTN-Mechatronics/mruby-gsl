@@ -30,6 +30,7 @@
 #include <time.h>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
+#include <gsl/gsl_blas.h>
 
 #include "mruby.h"
 #include "mruby/variable.h"
