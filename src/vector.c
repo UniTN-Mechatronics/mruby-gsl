@@ -211,11 +211,17 @@ static mrb_value mrb_vector_add(mrb_state *mrb, mrb_value self) {
 
   // call utility for unwrapping @data into p_data:
   mrb_vector_get_data(mrb, self, &p_vec);
-  mrb_vector_get_data(mrb, other, &p_vec_other);
-  if (p_vec->size != p_vec_other->size) {
-    mrb_raise(mrb, E_VECTOR_ERROR, "Vector indexes don't match!");
+  
+  if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Vector"))) {
+    mrb_vector_get_data(mrb, other, &p_vec_other);
+    if (p_vec->size != p_vec_other->size) {
+      mrb_raise(mrb, E_VECTOR_ERROR, "Vector indexes don't match!");
+    }
+    gsl_vector_add(p_vec, p_vec_other);
   }
-  gsl_vector_add(p_vec, p_vec_other);
+  else if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Numeric"))) {
+    gsl_vector_add_constant(p_vec, mrb_to_flo(mrb, other));
+  }
   return self;
 }
 
@@ -241,11 +247,16 @@ static mrb_value mrb_vector_mul(mrb_state *mrb, mrb_value self) {
 
   // call utility for unwrapping @data into p_data:
   mrb_vector_get_data(mrb, self, &p_vec);
-  mrb_vector_get_data(mrb, other, &p_vec_other);
-  if (p_vec->size != p_vec_other->size) {
-    mrb_raise(mrb, E_VECTOR_ERROR, "Vector indexes don't match!");
+  if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Vector"))) {
+    mrb_vector_get_data(mrb, other, &p_vec_other);
+    if (p_vec->size != p_vec_other->size) {
+      mrb_raise(mrb, E_VECTOR_ERROR, "Vector indexes don't match!");
+    }
+    gsl_vector_mul(p_vec, p_vec_other);
   }
-  gsl_vector_mul(p_vec, p_vec_other);
+  else if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Numeric"))) {
+    gsl_vector_scale(p_vec, mrb_to_flo(mrb, other));
+  }
   return self;
 }
 
@@ -264,28 +275,6 @@ static mrb_value mrb_vector_div(mrb_state *mrb, mrb_value self) {
   return self;
 }
 
-static mrb_value mrb_vector_scale(mrb_state *mrb, mrb_value self) {
-  gsl_vector *p_vec;
-  mrb_float factor;
-  mrb_get_args(mrb, "f", &factor);
-
-  // call utility for unwrapping @data into p_data:
-  mrb_vector_get_data(mrb, self, &p_vec);
-  gsl_vector_scale(p_vec, factor);
-  return self;
-}
-
-static mrb_value mrb_vector_add_scalar(mrb_state *mrb, mrb_value self) {
-  gsl_vector *p_vec;
-  mrb_float offset;
-  mrb_get_args(mrb, "f", &offset);
-
-  // call utility for unwrapping @data into p_data:
-  mrb_vector_get_data(mrb, self, &p_vec);
-  gsl_vector_add_constant(p_vec, offset);
-  return self;
-}
-
 static mrb_value mrb_vector_prod(mrb_state *mrb, mrb_value self) {
   mrb_value other;
   gsl_vector *p_vec, *p_vec_other;
@@ -298,7 +287,9 @@ static mrb_value mrb_vector_prod(mrb_state *mrb, mrb_value self) {
   if (p_vec->size != p_vec_other->size) {
     mrb_raise(mrb, E_VECTOR_ERROR, "Vector indexes don't match!");
   }
-  gsl_blas_ddot(p_vec, p_vec_other, &res);
+  if (gsl_blas_ddot(p_vec, p_vec_other, &res)) {
+    mrb_raise(mrb, E_VECTOR_ERROR, "Cannot multiply");
+  }
   return mrb_float_value(mrb, res);
 }
 
@@ -325,7 +316,9 @@ static mrb_value mrb_vector_swap(mrb_state *mrb, mrb_value self) {
 
   // call utility for unwrapping @data into p_data:
   mrb_vector_get_data(mrb, self, &p_vec);
-  gsl_vector_swap_elements(p_vec, i, j);
+  if (gsl_vector_swap_elements(p_vec, i, j)) {
+    mrb_raise(mrb, E_VECTOR_ERROR, "Cannot swap");
+  }
   return self;
 }
 
@@ -334,7 +327,9 @@ static mrb_value mrb_vector_reverse(mrb_state *mrb, mrb_value self) {
 
   // call utility for unwrapping @data into p_data:
   mrb_vector_get_data(mrb, self, &p_vec);
-  gsl_vector_reverse(p_vec);
+  if (gsl_vector_reverse(p_vec)) {
+    mrb_raise(mrb, E_VECTOR_ERROR, "Cannot reverse");
+  }
   return self;
 }
 
@@ -426,9 +421,6 @@ void mrb_gsl_vector_init(mrb_state *mrb) {
   mrb_define_method(mrb, gsl, "*", mrb_vector_prod, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "norm", mrb_vector_norm, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "sum", mrb_vector_sum, MRB_ARGS_NONE());
-  mrb_define_method(mrb, gsl, "scale", mrb_vector_scale, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, gsl, "add_scalar", mrb_vector_add_scalar,
-                    MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "swap!", mrb_vector_swap, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, gsl, "reverse!", mrb_vector_reverse, MRB_ARGS_NONE());
 }

@@ -274,12 +274,17 @@ static mrb_value mrb_matrix_add(mrb_state *mrb, mrb_value self) {
 
   // call utility for unwrapping @data into p_data:
   mrb_matrix_get_data(mrb, self, &p_mat);
-  mrb_matrix_get_data(mrb, other, &p_mat_other);
-  if (p_mat->size1 != p_mat_other->size1 ||
-      p_mat->size2 != p_mat_other->size2) {
-    mrb_raise(mrb, E_MATRIX_ERROR, "matrix dimensions don't match!");
+  if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Matrix"))) {
+    mrb_matrix_get_data(mrb, other, &p_mat_other);
+    if (p_mat->size1 != p_mat_other->size1 ||
+        p_mat->size2 != p_mat_other->size2) {
+      mrb_raise(mrb, E_MATRIX_ERROR, "matrix dimensions don't match!");
+    }
+    gsl_matrix_add(p_mat, p_mat_other);
   }
-  gsl_matrix_add(p_mat, p_mat_other);
+  else if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Numeric"))) {
+    gsl_matrix_add_constant(p_mat, mrb_to_flo(mrb, other));
+  }
   return self;
 }
 
@@ -306,12 +311,17 @@ static mrb_value mrb_matrix_mul(mrb_state *mrb, mrb_value self) {
 
   // call utility for unwrapping @data into p_data:
   mrb_matrix_get_data(mrb, self, &p_mat);
-  mrb_matrix_get_data(mrb, other, &p_mat_other);
-  if (p_mat->size1 != p_mat_other->size1 ||
-      p_mat->size2 != p_mat_other->size2) {
-    mrb_raise(mrb, E_MATRIX_ERROR, "matrix dimensions don't match!");
+  if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Matrix"))) {
+    mrb_matrix_get_data(mrb, other, &p_mat_other);
+    if (p_mat->size1 != p_mat_other->size1 ||
+        p_mat->size2 != p_mat_other->size2) {
+      mrb_raise(mrb, E_MATRIX_ERROR, "matrix dimensions don't match!");
+    }
+    gsl_matrix_mul_elements(p_mat, p_mat_other);
   }
-  gsl_matrix_mul_elements(p_mat, p_mat_other);
+  else if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Numeric"))) {
+    gsl_matrix_scale(p_mat, mrb_to_flo(mrb, other));
+  }
   return self;
 }
 
@@ -331,28 +341,6 @@ static mrb_value mrb_matrix_div(mrb_state *mrb, mrb_value self) {
   return self;
 }
 
-static mrb_value mrb_matrix_scale(mrb_state *mrb, mrb_value self) {
-  gsl_matrix *p_mat;
-  mrb_float factor;
-  mrb_get_args(mrb, "f", &factor);
-
-  // call utility for unwrapping @data into p_data:
-  mrb_matrix_get_data(mrb, self, &p_mat);
-  gsl_matrix_scale(p_mat, factor);
-  return self;
-}
-
-static mrb_value mrb_matrix_add_scalar(mrb_state *mrb, mrb_value self) {
-  gsl_matrix *p_mat;
-  mrb_float offset;
-  mrb_get_args(mrb, "f", &offset);
-
-  // call utility for unwrapping @data into p_data:
-  mrb_matrix_get_data(mrb, self, &p_mat);
-  gsl_matrix_add_constant(p_mat, offset);
-  return self;
-}
-
 static mrb_value mrb_matrix_transpose_self(mrb_state *mrb, mrb_value self) {
   gsl_matrix *p_mat;
   // call utility for unwrapping @data into p_data:
@@ -360,7 +348,9 @@ static mrb_value mrb_matrix_transpose_self(mrb_state *mrb, mrb_value self) {
   if (p_mat->size1 != p_mat->size2) {
     mrb_raise(mrb, E_MATRIX_ERROR, "matrix must be square!");
   }
-  gsl_matrix_transpose(p_mat);
+  if (gsl_matrix_transpose(p_mat)) {
+    mrb_raise(mrb, E_MATRIX_ERROR, "Cannot calculate transposed matrix");
+  }
   return self;
 }
 
@@ -375,7 +365,9 @@ static mrb_value mrb_matrix_transpose(mrb_state *mrb, mrb_value self) {
   // call utility for unwrapping @data into p_data:
   mrb_matrix_get_data(mrb, self, &p_mat);
   mrb_matrix_get_data(mrb, other, &p_mat_other);
-  gsl_matrix_transpose_memcpy(p_mat_other, p_mat);
+  if (gsl_matrix_transpose_memcpy(p_mat_other, p_mat)) {
+    mrb_raise(mrb, E_MATRIX_ERROR, "Cannot calculate transposed matrix");
+  }
   return other;
 }
 
@@ -386,7 +378,9 @@ static mrb_value mrb_matrix_swap_rows(mrb_state *mrb, mrb_value self) {
 
   // call utility for unwrapping @data into p_data:
   mrb_matrix_get_data(mrb, self, &p_mat);
-  gsl_matrix_swap_rows(p_mat, i, j);
+  if (gsl_matrix_swap_rows(p_mat, i, j)) {
+    mrb_raise(mrb, E_MATRIX_ERROR, "Cannot swap rows");
+  }
   return self;
 }
 
@@ -397,7 +391,9 @@ static mrb_value mrb_matrix_swap_cols(mrb_state *mrb, mrb_value self) {
 
   // call utility for unwrapping @data into p_data:
   mrb_matrix_get_data(mrb, self, &p_mat);
-  gsl_matrix_swap_columns(p_mat, i, j);
+  if (gsl_matrix_swap_columns(p_mat, i, j)) {
+    mrb_raise(mrb, E_MATRIX_ERROR, "Cannot swap cols");
+  }
   return self;
 }
 
@@ -468,9 +464,6 @@ void mrb_gsl_matrix_init(mrb_state *mrb) {
   mrb_define_method(mrb, gsl, "sub", mrb_matrix_sub, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "mul", mrb_matrix_mul, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "div", mrb_matrix_div, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, gsl, "scale", mrb_matrix_scale, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, gsl, "add_scalar", mrb_matrix_add_scalar,
-                    MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "t!", mrb_matrix_transpose_self, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "t", mrb_matrix_transpose, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "swap_rows", mrb_matrix_swap_rows,

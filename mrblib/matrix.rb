@@ -72,6 +72,10 @@ class Matrix
     end
   end
   
+  def lu
+    return LUDecomp.new self
+  end
+  
   def inspect
     "M#{self.to_a}"
   end
