@@ -21,6 +21,16 @@ v2.swap!(0,2)      #=> V[6,5,4]
 
 The `Vector` class includes the Enumerable module and supports iteration via #each.
 
+Also available methods:
+
+* Vector#all
+* Vector#zero
+* Vector#basis
+* Vector#===, same matrices
+* Vector#==, same sizes
+* Vector#[]
+* Vector#[]=
+
 ## Matrix class
 
 The `Matrix` class implements a fixed-size numeric matrix (using `double` values for internal storage).
