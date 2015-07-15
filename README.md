@@ -1,6 +1,11 @@
 # mruby-gsl
 This is a (very) partial wrapper to GSL functions. Its main target is to provide the basic functionalities for working with Matrices and Vectors.
 
+## Error messages
+By default, GSL error messages are printed to stdout. This happens in addition to standard Ruby errors. If you want to disable GSL error messages, use the Kernel method `gsl_info_off`, and use `gsl_info_on` to re-enable.
+
+Default behavior can be reversed (i.e. no printout) by disabling the compiler switch `GSL_ERROR_MSG_PRINTOUT` in `mrbgem.rake`.
+
 ## Vector class
 
 The `Vector` class implements a fixed-length numeric vector (using `double` values for internal storage).
@@ -23,13 +28,15 @@ The `Vector` class includes the Enumerable module and supports iteration via #ea
 
 Also available methods:
 
-* Vector#all
-* Vector#zero
-* Vector#basis
-* Vector#===, same matrices
-* Vector#==, same sizes
-* Vector#[]
-* Vector#[]=
+* `Vector#all`
+* `Vector#zero`
+* `Vector#basis`
+* `Vector#===`, same matrices
+* `Vector#==`, same sizes
+* `Vector#[]`
+* `Vector#[]=`
+
+The `Matrix` class includes the Enumerable module and supports iteration via `#each`.
 
 ## Matrix class
 
@@ -48,27 +55,27 @@ m1*Vector[3,4]              #=> V[22, -10]
 
 Also available methods:
 
-* Matrix#===, same matrices
-* Matrix#==, same sizes
-* Matrix#[]
-* Matrix#[]=
-* Matrix#row
-* Matrix#col
-* Matrix#set_row 
-* Matrix#set_col 
-* Matrix#all
-* Matrix#zero
-* Matrix#identity
-* Matrix#max
-* Matrix#max_index
-* Matrix#min
-* Matrix#min_index
-* Matrix#swap_rows
-* Matrix#swap_cols
-* Matrix#each_col
-* Matrix#each_row
+* `Matrix#===, same matrices`
+* `Matrix#==, same sizes`
+* `Matrix#[]`
+* `Matrix#[]=`
+* `Matrix#row`
+* `Matrix#col`
+* `Matrix#set_row `
+* `Matrix#set_col `
+* `Matrix#all`
+* `Matrix#zero`
+* `Matrix#identity`
+* `Matrix#max`
+* `Matrix#max_index`
+* `Matrix#min`
+* `Matrix#min_index`
+* `Matrix#swap_rows`
+* `Matrix#swap_cols`
+* `Matrix#each_col`
+* `Matrix#each_row`
 
-The `Matrix` class includes the Enumerable module and supports iteration via #each.
+The `Matrix` class includes the Enumerable module and supports iteration via `#each`.
 
 ## LUDecomp
 
