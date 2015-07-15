@@ -73,13 +73,29 @@ static void mrb_matrix_init(mrb_state *mrb, mrb_value self, mrb_int n,
 static mrb_value mrb_matrix_initialize(mrb_state *mrb, mrb_value self) {
   mrb_int n, m;
   mrb_get_args(mrb, "ii", &n, &m);
-  
+
   // Call strcut initializer:
   mrb_matrix_init(mrb, self, n, m);
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@rows"), mrb_fixnum_value(n));
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@cols"), mrb_fixnum_value(m));
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@format"), mrb_str_new_cstr(mrb, "%10.3f"));
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@format"),
+             mrb_str_new_cstr(mrb, "%10.3f"));
   return mrb_nil_value();
+}
+
+static mrb_value mrb_matrix_dup(mrb_state *mrb, mrb_value self) {
+  mrb_value other;
+  gsl_matrix *p_mat = NULL, *p_mat_other = NULL;
+  mrb_value args[2];
+
+  // call utility for unwrapping @data into p_data:
+  mrb_matrix_get_data(mrb, self, &p_mat);
+  args[0] = mrb_fixnum_value(p_mat->size1);
+  args[1] = mrb_fixnum_value(p_mat->size2);
+  other = mrb_obj_new(mrb, mrb_class_get(mrb, "Matrix"), 2, args);
+  mrb_matrix_get_data(mrb, other, &p_mat_other);
+  gsl_matrix_memcpy(p_mat_other, p_mat);
+  return other;
 }
 
 static mrb_value mrb_matrix_all(mrb_state *mrb, mrb_value self) {
@@ -153,7 +169,7 @@ static mrb_value mrb_matrix_get_row(mrb_state *mrb, mrb_value self) {
   args[0] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@cols"));
   res = mrb_obj_new(mrb, mrb_class_get(mrb, "Vector"), 1, args);
   mrb_vector_get_data(mrb, res, &p_vec);
-  gsl_matrix_get_row (p_vec, p_mat, i);
+  gsl_matrix_get_row(p_vec, p_mat, i);
   return res;
 }
 
@@ -172,7 +188,7 @@ static mrb_value mrb_matrix_get_col(mrb_state *mrb, mrb_value self) {
   args[0] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@rows"));
   res = mrb_obj_new(mrb, mrb_class_get(mrb, "Vector"), 1, args);
   mrb_vector_get_data(mrb, res, &p_vec);
-  gsl_matrix_get_col (p_vec, p_mat, i);
+  gsl_matrix_get_col(p_vec, p_mat, i);
   return res;
 }
 
@@ -232,7 +248,6 @@ static mrb_value mrb_matrix_set_col(mrb_state *mrb, mrb_value self) {
   return self;
 }
 
-
 static mrb_value mrb_matrix_max(mrb_state *mrb, mrb_value self) {
   gsl_matrix *p_mat = NULL;
   mrb_matrix_get_data(mrb, self, &p_mat);
@@ -281,8 +296,7 @@ static mrb_value mrb_matrix_add(mrb_state *mrb, mrb_value self) {
       mrb_raise(mrb, E_MATRIX_ERROR, "matrix dimensions don't match!");
     }
     gsl_matrix_add(p_mat, p_mat_other);
-  }
-  else if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Numeric"))) {
+  } else if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Numeric"))) {
     gsl_matrix_add_constant(p_mat, mrb_to_flo(mrb, other));
   }
   return self;
@@ -318,8 +332,7 @@ static mrb_value mrb_matrix_mul(mrb_state *mrb, mrb_value self) {
       mrb_raise(mrb, E_MATRIX_ERROR, "matrix dimensions don't match!");
     }
     gsl_matrix_mul_elements(p_mat, p_mat_other);
-  }
-  else if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Numeric"))) {
+  } else if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Numeric"))) {
     gsl_matrix_scale(p_mat, mrb_to_flo(mrb, other));
   }
   return self;
@@ -419,8 +432,7 @@ static mrb_value mrb_matrix_prod(mrb_state *mrb, mrb_value self) {
     }
     gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, p_mat, p_mat_other, 0.0,
                    p_mat_res);
-  }
-  else if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Vector"))) {
+  } else if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Vector"))) {
     args[0] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@rows"));
     res = mrb_obj_new(mrb, mrb_class_get(mrb, "Vector"), 1, args);
     mrb_vector_get_data(mrb, other, &p_vec_other);
@@ -442,6 +454,7 @@ void mrb_gsl_matrix_init(mrb_state *mrb) {
   gsl = mrb_define_class(mrb, "Matrix", mrb->object_class);
   mrb_define_method(mrb, gsl, "initialize", mrb_matrix_initialize,
                     MRB_ARGS_NONE());
+  mrb_define_method(mrb, gsl, "dup", mrb_matrix_dup, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "all", mrb_matrix_all, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "zero", mrb_matrix_zero, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "identity", mrb_matrix_identity, MRB_ARGS_NONE());

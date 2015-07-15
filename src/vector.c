@@ -85,6 +85,20 @@ static mrb_value mrb_vector_initialize(mrb_state *mrb, mrb_value self) {
   return mrb_nil_value();
 }
 
+static mrb_value mrb_vector_dup(mrb_state *mrb, mrb_value self) {
+  mrb_value other;
+  gsl_vector *p_vec = NULL, *p_vec_other = NULL;
+  mrb_value args[1];
+
+  // call utility for unwrapping @data into p_data:
+  mrb_vector_get_data(mrb, self, &p_vec);
+  args[0] = mrb_fixnum_value(p_vec->size);
+  other = mrb_obj_new(mrb, mrb_class_get(mrb, "Vector"), 1, args);
+  mrb_vector_get_data(mrb, other, &p_vec_other);
+  gsl_vector_memcpy(p_vec_other, p_vec);
+  return other;
+}
+
 static mrb_value mrb_vector_all(mrb_state *mrb, mrb_value self) {
   mrb_float v;
   gsl_vector *p_vec = NULL;
@@ -420,6 +434,7 @@ void mrb_gsl_vector_init(mrb_state *mrb) {
 
   mrb_define_method(mrb, gsl, "initialize", mrb_vector_initialize,
                     MRB_ARGS_NONE());
+  mrb_define_method(mrb, gsl, "dup", mrb_vector_dup, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "===", mrb_vector_equal, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "[]", mrb_vector_get_i, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "[]=", mrb_vector_set_i, MRB_ARGS_REQ(2));
