@@ -49,6 +49,10 @@ class Vector
     end
   end
   
+  def median
+    self.quantile
+  end
+  
   def inspect
     "V#{self.to_a}"
   end

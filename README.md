@@ -37,6 +37,12 @@ Also available methods:
 * `Vector#==`, same sizes
 * `Vector#[]`
 * `Vector#[]=`
+* `Vector#mean`, optional Float argument for passing a given value of mean
+* `Vector#variance`, optional Float argument for passing a given value of mean
+* `Vector#sd`, optional Float argument for passing a given value of mean
+* `Vector#absdev`, optional Float argument for passing a given value of mean
+* `Vector#median`
+* `Vector#quantile`
 
 The `Matrix` class includes the Enumerable module and supports iteration via `#each`.
 
@@ -95,7 +101,6 @@ lu.det                 #=> 7
 
 The following features are expected to be implemented, in order of precedence:
 
-* Descriptive statistics for `Vector`
 * QR decomposition
 * SV decomposition
 * Eigensystems
