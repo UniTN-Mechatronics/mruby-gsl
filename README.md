@@ -82,6 +82,9 @@ Also available methods:
 * `Matrix#swap_cols`
 * `Matrix#each_col`
 * `Matrix#each_row`
+* `Matrix#lu`
+* `Matrix#det`
+* `Matrix#inv`
 
 The `Matrix` class includes the Enumerable module and supports iteration via `#each`.
 
