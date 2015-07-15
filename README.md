@@ -88,3 +88,14 @@ lu.inv                 #=> M[[0.14285714285714, -0.28571428571429], [0.428571428
 lu.solve Vector[3,-7]  #=> V[2.4285714285714, 0.28571428571429]
 lu.det                 #=> 7
 ```
+
+## To Do list
+
+The following features are expected to be implemented, in order of precedence:
+
+* Descriptive statistics for `Vector`
+* QR decomposition
+* SV decomposition
+* Eigensystems
+* Interpolation
+* FFT
