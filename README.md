@@ -39,6 +39,7 @@ Also available methods:
 The `Matrix` class includes the Enumerable module and supports iteration via `#each`.
 
 ## Matrix class
+[![Build Status](https://travis-ci.org/UniTN-Mechatronics/mruby-gsl.svg)](https://travis-ci.org/UniTN-Mechatronics/mruby-gsl)
 
 The `Matrix` class implements a fixed-size numeric matrix (using `double` values for internal storage).
 

@@ -7,7 +7,7 @@ if __FILE__ == $PROGRAM_NAME
     system 'git clone --depth 1 https://github.com/mruby/mruby.git tmp/mruby'
   end
   system(%Q[cd tmp/mruby; MRUBY_CONFIG=#{File.expand_path __FILE__} ./minirake #{ARGV.join(' ')}])
-  exit system %Q"ln -s tmp/mruby/bin/mirb ."
+  exit
 end
 
 MRuby::Build.new do |conf|
