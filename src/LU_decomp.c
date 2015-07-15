@@ -17,11 +17,12 @@
 /*                                                                         */
 /***************************************************************************/
 
+#include <gsl/gsl_linalg.h>
+#include <stdio.h>
 #include "matrix.h"
 #include "vector.h"
 #include "LU_decomp.h"
-#include "gsl/gsl_linalg.h"
-#include <stdio.h>
+
 // Garbage collector handler, for play_data struct
 // if play_data contains other dynamic data, free it too!
 // Check it with GC.start

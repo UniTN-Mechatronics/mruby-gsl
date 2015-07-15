@@ -30,6 +30,7 @@ The `Vector` class includes the Enumerable module and supports iteration via #ea
 
 Also available methods:
 
+* `Vector#rnd_fill`
 * `Vector#all`
 * `Vector#zero`
 * `Vector#basis`
@@ -63,6 +64,7 @@ m1*Vector[3,4]              #=> V[22, -10]
 
 Also available methods:
 
+* `Matrix#rnd_fill`
 * `Matrix#===, same matrices`
 * `Matrix#==, same sizes`
 * `Matrix#[]`

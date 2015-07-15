@@ -17,6 +17,8 @@
 /*                                                                         */
 /***************************************************************************/
 
+#include <gsl/gsl_blas.h>
+#include <gsl/gsl_rng.h>
 #include "matrix.h"
 #include "vector.h"
 
@@ -96,6 +98,26 @@ static mrb_value mrb_matrix_dup(mrb_state *mrb, mrb_value self) {
   mrb_matrix_get_data(mrb, other, &p_mat_other);
   gsl_matrix_memcpy(p_mat_other, p_mat);
   return other;
+}
+
+static mrb_value mrb_matrix_rnd_fill(mrb_state *mrb, mrb_value self) {
+  gsl_matrix *p_mat = NULL;
+  const gsl_rng_type *T;
+  gsl_rng *r;
+  mrb_int h, k;
+
+  mrb_matrix_get_data(mrb, self, &p_mat);
+
+  gsl_rng_env_setup();
+  T = gsl_rng_default;
+  r = gsl_rng_alloc(T);
+
+  for (k = 0; k < p_mat->size2; k++) {
+    for (h = 0; h < p_mat->size1; h++) {
+      gsl_matrix_set(p_mat, h, k, gsl_rng_uniform(r));
+    }
+  }
+  return self;
 }
 
 static mrb_value mrb_matrix_all(mrb_state *mrb, mrb_value self) {
@@ -458,6 +480,7 @@ void mrb_gsl_matrix_init(mrb_state *mrb) {
   mrb_define_method(mrb, gsl, "all", mrb_matrix_all, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "zero", mrb_matrix_zero, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "identity", mrb_matrix_identity, MRB_ARGS_NONE());
+  mrb_define_method(mrb, gsl, "rnd_fill", mrb_matrix_rnd_fill, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "===", mrb_matrix_equal, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "[]", mrb_matrix_get_ij, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, gsl, "row", mrb_matrix_get_row, MRB_ARGS_REQ(1));

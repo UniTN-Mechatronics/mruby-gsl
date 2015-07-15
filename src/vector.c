@@ -17,9 +17,11 @@
 /*                                                                         */
 /***************************************************************************/
 
+#include <gsl/gsl_blas.h>
+#include <gsl/gsl_statistics_double.h>
+#include <gsl/gsl_sort_vector.h>
+#include <gsl/gsl_rng.h>
 #include "vector.h"
-#include "gsl/gsl_statistics_double.h"
-#include "gsl/gsl_sort_vector.h"
 
 // Garbage collector handler, for play_data struct
 // if play_data contains other dynamic data, free it too!
@@ -84,6 +86,25 @@ static mrb_value mrb_vector_initialize(mrb_state *mrb, mrb_value self) {
              mrb_str_new_cstr(mrb, "%10.3f"));
   return mrb_nil_value();
 }
+
+static mrb_value mrb_vector_rnd_fill(mrb_state *mrb, mrb_value self) {
+  gsl_vector *p_vec = NULL;
+  const gsl_rng_type *T;
+  gsl_rng *r;
+  mrb_int h;
+
+  mrb_vector_get_data(mrb, self, &p_vec);
+
+  gsl_rng_env_setup();
+  T = gsl_rng_default;
+  r = gsl_rng_alloc(T);
+
+  for (h = 0; h < p_vec->size; h++) {
+    gsl_vector_set(p_vec, h, gsl_rng_uniform(r));
+  }
+  return self;
+}
+
 
 static mrb_value mrb_vector_dup(mrb_state *mrb, mrb_value self) {
   mrb_value other;
@@ -433,6 +454,8 @@ void mrb_gsl_vector_init(mrb_state *mrb) {
   mrb_define_method(mrb, gsl, "basis", mrb_vector_basis, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, gsl, "initialize", mrb_vector_initialize,
+                    MRB_ARGS_NONE());
+  mrb_define_method(mrb, gsl, "rnd_fill", mrb_vector_rnd_fill,
                     MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "dup", mrb_vector_dup, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "===", mrb_vector_equal, MRB_ARGS_REQ(1));
