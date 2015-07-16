@@ -23,6 +23,9 @@
 #include <gsl/gsl_rng.h>
 #include "vector.h"
 
+#pragma mark -
+#pragma mark • Utilities
+
 // Garbage collector handler, for play_data struct
 // if play_data contains other dynamic data, free it too!
 // Check it with GC.start
@@ -49,7 +52,7 @@ void mrb_vector_get_data(mrb_state *mrb, mrb_value self, gsl_vector **data) {
 }
 
 #pragma mark -
-#pragma mark Init and accessing
+#pragma mark • Init and accessing
 
 // Data Initializer C function (not exposed!)
 static void mrb_vector_init(mrb_state *mrb, mrb_value self, mrb_int n) {
@@ -151,6 +154,10 @@ static mrb_value mrb_vector_basis(mrb_state *mrb, mrb_value self) {
   return self;
 }
 
+
+#pragma mark -
+#pragma mark • Tests
+
 static mrb_value mrb_vector_equal(mrb_state *mrb, mrb_value self) {
   mrb_value other;
   gsl_vector *p_vec, *p_vec_other;
@@ -164,6 +171,10 @@ static mrb_value mrb_vector_equal(mrb_state *mrb, mrb_value self) {
   else
     return mrb_false_value();
 }
+
+
+#pragma mark -
+#pragma mark • Accessors
 
 static mrb_value mrb_vector_get_i(mrb_state *mrb, mrb_value self) {
   mrb_int i = 0;
@@ -209,7 +220,7 @@ static mrb_value mrb_vector_to_a(mrb_state *mrb, mrb_value self) {
 }
 
 #pragma mark -
-#pragma mark Properties
+#pragma mark • Properties
 
 static mrb_value mrb_vector_max(mrb_state *mrb, mrb_value self) {
   gsl_vector *p_vec = NULL;
@@ -236,7 +247,7 @@ static mrb_value mrb_vector_min_index(mrb_state *mrb, mrb_value self) {
 }
 
 #pragma mark -
-#pragma mark Operations
+#pragma mark • Operations
 
 static mrb_value mrb_vector_add(mrb_state *mrb, mrb_value self) {
   mrb_value other;
@@ -365,7 +376,10 @@ static mrb_value mrb_vector_reverse(mrb_state *mrb, mrb_value self) {
   return self;
 }
 
-// STATISTICS
+
+#pragma mark -
+#pragma mark • Statistics
+
 static mrb_value mrb_vector_mean(mrb_state *mrb, mrb_value self) {
   gsl_vector *p_vec;
   mrb_float result;
@@ -442,6 +456,10 @@ static mrb_value mrb_vector_quantile(mrb_state *mrb, mrb_value self) {
   }
   return mrb_float_value(mrb, result);
 }
+
+
+#pragma mark -
+#pragma mark • Gem setup
 
 void mrb_gsl_vector_init(mrb_state *mrb) {
   struct RClass *gsl;

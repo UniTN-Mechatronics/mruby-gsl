@@ -23,6 +23,10 @@
 #include "vector.h"
 #include "LU_decomp.h"
 
+
+#pragma mark -
+#pragma mark • Utilities
+
 // Garbage collector handler, for play_data struct
 // if play_data contains other dynamic data, free it too!
 // Check it with GC.start
@@ -49,6 +53,10 @@ void mrb_lu_decomp_get_data(mrb_state *mrb, mrb_value self,
   if (!*data)
     mrb_raise(mrb, E_RUNTIME_ERROR, "Could not access @data");
 }
+
+
+#pragma mark -
+#pragma mark • Initializations
 
 // Data Initializer C function (not exposed!)
 static mrb_value mrb_lu_initialize(mrb_state *mrb, mrb_value self) {
@@ -95,6 +103,10 @@ static mrb_value mrb_lu_initialize(mrb_state *mrb, mrb_value self) {
                                   p_data)));
   return mrb_nil_value();
 }
+
+
+#pragma mark -
+#pragma mark • Operations
 
 // int gsl_linalg_LU_invert (const gsl_matrix * LU, const gsl_permutation * p,
 // gsl_matrix * inverse)
@@ -155,6 +167,11 @@ static mrb_value mrb_lu_solve(mrb_state *mrb, mrb_value self) {
   }
   return result;
 }
+
+
+
+#pragma mark -
+#pragma mark • Gem setup
 
 void mrb_gsl_lu_decomp_init(mrb_state *mrb) {
   struct RClass *lu;

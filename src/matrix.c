@@ -22,6 +22,9 @@
 #include "matrix.h"
 #include "vector.h"
 
+#pragma mark -
+#pragma mark • Utilities
+
 // Garbage collector handler, for play_data struct
 // if play_data contains other dynamic data, free it too!
 // Check it with GC.start
@@ -46,6 +49,10 @@ void mrb_matrix_get_data(mrb_state *mrb, mrb_value self, gsl_matrix **data) {
   if (!*data)
     mrb_raise(mrb, E_RUNTIME_ERROR, "Could not access @data");
 }
+
+
+#pragma mark -
+#pragma mark • Initializations and setup
 
 // Data Initializer C function (not exposed!)
 static void mrb_matrix_init(mrb_state *mrb, mrb_value self, mrb_int n,
@@ -149,6 +156,10 @@ static mrb_value mrb_matrix_identity(mrb_state *mrb, mrb_value self) {
   return self;
 }
 
+
+#pragma mark -
+#pragma mark • Tests
+
 static mrb_value mrb_matrix_equal(mrb_state *mrb, mrb_value self) {
   mrb_value other;
   gsl_matrix *p_mat, *p_mat_other;
@@ -162,6 +173,10 @@ static mrb_value mrb_matrix_equal(mrb_state *mrb, mrb_value self) {
   else
     return mrb_false_value();
 }
+
+
+#pragma mark -
+#pragma mark • Accessors
 
 static mrb_value mrb_matrix_get_ij(mrb_state *mrb, mrb_value self) {
   mrb_int i, j;
@@ -270,6 +285,10 @@ static mrb_value mrb_matrix_set_col(mrb_state *mrb, mrb_value self) {
   return self;
 }
 
+
+#pragma mark -
+#pragma mark • Properties
+
 static mrb_value mrb_matrix_max(mrb_state *mrb, mrb_value self) {
   gsl_matrix *p_mat = NULL;
   mrb_matrix_get_data(mrb, self, &p_mat);
@@ -303,6 +322,10 @@ static mrb_value mrb_matrix_min_index(mrb_state *mrb, mrb_value self) {
   mrb_ary_push(mrb, res, mrb_fixnum_value(j));
   return res;
 }
+
+
+#pragma mark -
+#pragma mark • Operations
 
 static mrb_value mrb_matrix_add(mrb_state *mrb, mrb_value self) {
   mrb_value other;
@@ -467,6 +490,11 @@ static mrb_value mrb_matrix_prod(mrb_state *mrb, mrb_value self) {
   }
   return res;
 }
+
+
+#pragma mark -
+#pragma mark • Gem setup
+
 
 void mrb_gsl_matrix_init(mrb_state *mrb) {
   struct RClass *gsl;
