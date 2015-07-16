@@ -49,7 +49,7 @@ Also available methods:
 * `Vector#all`
 * `Vector#zero`
 * `Vector#basis`
-* `Vector#===`, same matrices
+* `Vector#===`, same vectors
 * `Vector#==`, same sizes
 * `Vector#[]`
 * `Vector#[]=`
@@ -78,6 +78,7 @@ m1*Vector[3,4]              #=> V[22, -10]
 ```
 
 Element getters have two alternative syntaxes:
+
 1. `m[i,j]` gives the *i,j*-th element (also for writing)
 2. `m[i]` returns the *i*-th row, as a Vector
 3. `m[]` returns an Array of Vectors representing rows of `m`
