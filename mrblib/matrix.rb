@@ -100,9 +100,8 @@ class Matrix
     end
   end
   
-  def lu
-    return LUDecomp.new self
-  end
+  def lu; return LUDecomp.new self; end
+  def qr; return QRDecomp.new self; end
   
   def det
     return LUDecomp.new(self).det

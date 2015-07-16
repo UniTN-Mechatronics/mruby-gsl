@@ -1,6 +1,6 @@
 /***************************************************************************/
 /*                                                                         */
-/* gsl.c - GSL wrapper classes for mruby                                   */
+/* QR_decomp.h - LU Decomposition class for mruby                          */
 /* Copyright (C) 2015 Paolo Bosetti                                        */
 /* paolo[dot]bosetti[at]unitn.it                                           */
 /* Department of Industrial Engineering, University of Trento              */
@@ -16,44 +16,55 @@
 /* See the file LICENSE                                                    */
 /*                                                                         */
 /***************************************************************************/
+
+#ifndef QR_DECOMP_H
+#define QR_DECOMP_H
+
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/param.h>
+#include <time.h>
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_blas.h>
+#include <gsl/gsl_permutation.h>
+
 #include "mruby.h"
-#include "vector.h"
-#include "matrix.h"
-#include "LU_decomp.h"
-#include "QR_decomp.h"
+#include "mruby/variable.h"
+#include "mruby/string.h"
+#include "mruby/data.h"
+#include "mruby/class.h"
+#include "mruby/value.h"
+#include "mruby/array.h"
+#include "mruby/numeric.h"
+#include "mruby/compile.h"
 
-void error_handler(const char *reason, const char *file, int line,
-                   int gsl_errno) {
-  printf("GSL: %s in %s[%d]: %s\n", gsl_strerror(gsl_errno), file, line,
-         reason);
-}
+#define E_QR_DECOMP_ERROR (mrb_class_get(mrb, "QRDecompError"))
 
-static mrb_value mrb_gsl_info_on(mrb_state *mrb, mrb_value self) {
-  gsl_set_error_handler(&error_handler);
-  return mrb_true_value();
-}
+/***********************************************\
+ QR Decomposition
+\***********************************************/
 
-static mrb_value mrb_gsl_info_off(mrb_state *mrb, mrb_value self) {
-  gsl_set_error_handler_off();
-  return mrb_false_value();
-}
+typedef struct {
+  gsl_matrix *mat;
+  gsl_vector *tau;
+  size_t size1;
+  size_t size2;
+} qr_decomp_data_s;
 
-void mrb_mruby_gsl_gem_init(mrb_state *mrb) {
-// disable GSL error handler
-#ifdef GSL_ERROR_MSG_PRINTOUT
-  gsl_set_error_handler(&error_handler);
-#else
-  gsl_set_error_handler_off();
-#endif
-  mrb_define_method(mrb, mrb->kernel_module, "gsl_info_on", mrb_gsl_info_on,
-                    MRB_ARGS_NONE());
-  mrb_define_method(mrb, mrb->kernel_module, "gsl_info_off", mrb_gsl_info_off,
-                    MRB_ARGS_NONE());
 
-  mrb_gsl_vector_init(mrb);
-  mrb_gsl_matrix_init(mrb);
-  mrb_gsl_lu_decomp_init(mrb);
-  mrb_gsl_qr_decomp_init(mrb);
-}
+// Garbage collector handler, for play_data struct
+// if play_data contains other dynamic data, free it too!
+// Check it with GC.start
+void qr_decomp_destructor(mrb_state *mrb, void *p_);
 
-void mrb_mruby_gsl_gem_final(mrb_state *mrb) {}
+// Utility function for getting the struct out of the wrapping IV @data
+void mrb_qr_decomp_get_data(mrb_state *mrb, mrb_value self, qr_decomp_data_s **data);
+
+void mrb_gsl_qr_decomp_init(mrb_state *mrb);
+
+#endif // QR_DECOMP_H
