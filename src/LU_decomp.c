@@ -34,8 +34,7 @@ void lu_decomp_destructor(mrb_state *mrb, void *p_) {
   lu_decomp_data_s *lu = (lu_decomp_data_s *)p_;
   gsl_matrix_free(lu->mat);
   gsl_permutation_free(lu->p);
-  // or simply:
-  // mrb_free(mrb, pd);
+  free(lu);
 };
 
 // Creating data type and reference for GC, in a const struct

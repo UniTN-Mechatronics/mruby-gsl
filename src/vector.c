@@ -32,8 +32,6 @@
 void vector_destructor(mrb_state *mrb, void *p_) {
   gsl_vector *v = (gsl_vector *)p_;
   gsl_vector_free(v);
-  // or simply:
-  // mrb_free(mrb, pd);
 };
 
 // Creating data type and reference for GC, in a const struct

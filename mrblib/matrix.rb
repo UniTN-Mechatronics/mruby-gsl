@@ -20,7 +20,7 @@
 class Matrix
   include Enumerable
   include Comparable
-  attr_reader :cols, :rows
+  attr_reader :ncols, :nrows
   attr_accessor :format
   
   def self.[](*ary)
@@ -35,9 +35,9 @@ class Matrix
   def to_a
     rows = []
     cols = []
-    @rows.times do |i|
+    @nrows.times do |i|
       cols = []
-      @cols.times do |j|
+      @ncols.times do |j|
         cols << self[i,j]
       end
       rows << cols
@@ -46,28 +46,51 @@ class Matrix
   end
   
   def <=>(other)
-    (@rows * @cols) <=> (other.rows * other.cols)
+    (@nrows * @ncols) <=> (other.rows * other.cols)
+  end
+  
+  def size
+    [@nrows, @ncols]
   end
   
   def each
     raise ArgumentError, "Need a block" unless block_given?
-    @rows.times do |i|
-      @cols.times do |j|
+    @nrows.times do |i|
+      @ncols.times do |j|
         yield self[i,j]
       end
     end
   end
   
+  def each_with_indexes
+    raise ArgumentError, "Need a block" unless block_given?
+    @nrows.times do |i|
+      @ncols.times do |j|
+        yield self[i,j], i, j
+      end
+    end
+  end
+  
+  def map!
+    raise ArgumentError, "Need a block" unless block_given?
+    @nrows.times do |i|
+      @ncols.times do |j|
+        self[i,j] = yield self[i,j]
+      end
+    end
+    return self
+  end
+  
   def each_col
     raise ArgumentError, "Need a block" unless block_given?
-    @cols.times do |j|
+    @ncols.times do |j|
       yield self.col(j), j
     end
   end
   
   def each_row
     raise ArgumentError, "Need a block" unless block_given?
-    @rows.times do |i|
+    @nrows.times do |i|
       yield self.row(i), i
     end
   end
@@ -90,7 +113,7 @@ class Matrix
   
   def to_s
     lines = []
-    mask = "⎜ #{(@format + ' ') * @cols}⎟"
+    mask = "⎜ #{(@format + ' ') * @ncols}⎟"
     self.each_row do |r|
       lines << (mask % r.to_a)
     end

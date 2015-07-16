@@ -3,6 +3,20 @@
 
 This is a (very) partial wrapper to GSL functions. Its main target is to provide the basic functionalities for working with Matrices and Vectors.
 
+## Installing
+To include in your custom mruby, add the following to `build_config.rb`:
+
+```ruby
+conf.gem :github => 'UniTN-Mechatronics/mrbgems-gsl'
+```
+
+To simply test it into a minimal mruby:
+
+```sh
+$ make
+$ tmp/mruby/bin/mirb
+```
+
 ## Error messages
 By default, GSL error messages are printed to stdout. This happens in addition to standard Ruby errors. If you want to disable GSL error messages, use the Kernel method `gsl_info_off`, and use `gsl_info_on` to re-enable.
 
@@ -30,6 +44,7 @@ The `Vector` class includes the Enumerable module and supports iteration via #ea
 
 Also available methods:
 
+* `Vector#size`
 * `Vector#rnd_fill`
 * `Vector#all`
 * `Vector#zero`
@@ -45,7 +60,7 @@ Also available methods:
 * `Vector#median`
 * `Vector#quantile`
 
-The `Matrix` class includes the Enumerable module and supports iteration via `#each`.
+The `Vector` class includes the Enumerable module and supports iteration via `#each`.
 
 ## Matrix class
 
@@ -62,11 +77,20 @@ v1.to_mat                   #=> M[[1], [2], [3]]
 m1*Vector[3,4]              #=> V[22, -10]
 ```
 
+Element getters have two alternative syntaxes:
+1. `m[i,j]` gives the *i,j*-th element (also for writing)
+2. `m[i]` returns the *i*-th row, as a Vector
+3. `m[]` returns an Array of Vectors representing rows of `m`
+4. `m[i][j]` as for 1., but **not for writing!**
+
 Also available methods:
 
+* `Matrix#nrows`
+* `Matrix#ncols`
+* `Matrix#size`, returns an array of `[nrows, ncols]`
 * `Matrix#rnd_fill`
-* `Matrix#===, same matrices`
-* `Matrix#==, same sizes`
+* `Matrix#===`, same matrices
+* `Matrix#==`, same sizes
 * `Matrix#[]`
 * `Matrix#[]=`
 * `Matrix#row`
@@ -88,7 +112,8 @@ Also available methods:
 * `Matrix#det`
 * `Matrix#inv`
 
-The `Matrix` class includes the Enumerable module and supports iteration via `#each`.
+The `Matrix` class includes the Enumerable module and supports iteration via `#each`. Notably, there is the `#each_with_indexes` method (whose block takes three arguments), and the `#map!` method.
+
 
 ## LUDecomp
 

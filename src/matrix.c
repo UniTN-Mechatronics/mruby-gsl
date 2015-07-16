@@ -31,8 +31,6 @@
 void matrix_destructor(mrb_state *mrb, void *p_) {
   gsl_matrix *v = (gsl_matrix *)p_;
   gsl_matrix_free(v);
-  // or simply:
-  // mrb_free(mrb, pd);
 };
 
 // Creating data type and reference for GC, in a const struct
@@ -49,7 +47,6 @@ void mrb_matrix_get_data(mrb_state *mrb, mrb_value self, gsl_matrix **data) {
   if (!*data)
     mrb_raise(mrb, E_RUNTIME_ERROR, "Could not access @data");
 }
-
 
 #pragma mark -
 #pragma mark • Initializations and setup
@@ -85,8 +82,8 @@ static mrb_value mrb_matrix_initialize(mrb_state *mrb, mrb_value self) {
 
   // Call strcut initializer:
   mrb_matrix_init(mrb, self, n, m);
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@rows"), mrb_fixnum_value(n));
-  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@cols"), mrb_fixnum_value(m));
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@nrows"), mrb_fixnum_value(n));
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@ncols"), mrb_fixnum_value(m));
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@format"),
              mrb_str_new_cstr(mrb, "%10.3f"));
   return mrb_nil_value();
@@ -156,7 +153,6 @@ static mrb_value mrb_matrix_identity(mrb_state *mrb, mrb_value self) {
   return self;
 }
 
-
 #pragma mark -
 #pragma mark • Tests
 
@@ -174,40 +170,35 @@ static mrb_value mrb_matrix_equal(mrb_state *mrb, mrb_value self) {
     return mrb_false_value();
 }
 
-
 #pragma mark -
 #pragma mark • Accessors
 
-static mrb_value mrb_matrix_get_ij(mrb_state *mrb, mrb_value self) {
-  mrb_int i, j;
-  gsl_matrix *p_mat = NULL;
-
-  mrb_get_args(mrb, "ii", &i, &j);
-  // call utility for unwrapping @data into p_data:
-  mrb_matrix_get_data(mrb, self, &p_mat);
-  if (i >= p_mat->size1 || j >= p_mat->size2) {
-    mrb_raise(mrb, E_MATRIX_ERROR, "matrix index out of range!");
-  }
-  return mrb_float_value(mrb, gsl_matrix_get(p_mat, (size_t)i, (size_t)j));
-}
-
 static mrb_value mrb_matrix_get_row(mrb_state *mrb, mrb_value self) {
-  mrb_int i;
-  mrb_value res, args[1];
+  mrb_int i, n;
+  mrb_value result, args[1];
   gsl_matrix *p_mat = NULL;
   gsl_vector *p_vec = NULL;
 
-  mrb_get_args(mrb, "i", &i);
+  n = mrb_get_args(mrb, "|i", &i);
   // call utility for unwrapping @data into p_data:
   mrb_matrix_get_data(mrb, self, &p_mat);
-  if (i >= p_mat->size1) {
-    mrb_raise(mrb, E_MATRIX_ERROR, "matrix index out of range!");
+
+  if (n == 1) {
+    if (i >= p_mat->size1) {
+      mrb_raise(mrb, E_MATRIX_ERROR, "matrix index out of range!");
+    }
+    args[0] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@ncols"));
+    result = mrb_obj_new(mrb, mrb_class_get(mrb, "Vector"), 1, args);
+    mrb_vector_get_data(mrb, result, &p_vec);
+    gsl_matrix_get_row(p_vec, p_mat, i);
   }
-  args[0] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@cols"));
-  res = mrb_obj_new(mrb, mrb_class_get(mrb, "Vector"), 1, args);
-  mrb_vector_get_data(mrb, res, &p_vec);
-  gsl_matrix_get_row(p_vec, p_mat, i);
-  return res;
+  else {
+    result = mrb_ary_new_capa(mrb, p_mat->size1);
+    for (i = 0; i < p_mat->size1; i++) {
+      mrb_ary_push(mrb, result, mrb_funcall(mrb, self, "get_row", 1, mrb_fixnum_value(i)));
+    }
+  }
+  return result;
 }
 
 static mrb_value mrb_matrix_get_col(mrb_state *mrb, mrb_value self) {
@@ -222,11 +213,31 @@ static mrb_value mrb_matrix_get_col(mrb_state *mrb, mrb_value self) {
   if (i >= p_mat->size2) {
     mrb_raise(mrb, E_MATRIX_ERROR, "matrix index out of range!");
   }
-  args[0] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@rows"));
+  args[0] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@nrows"));
   res = mrb_obj_new(mrb, mrb_class_get(mrb, "Vector"), 1, args);
   mrb_vector_get_data(mrb, res, &p_vec);
   gsl_matrix_get_col(p_vec, p_mat, i);
   return res;
+}
+
+static mrb_value mrb_matrix_get_ij(mrb_state *mrb, mrb_value self) {
+  mrb_value result;
+  mrb_int i, j;
+  gsl_matrix *p_mat = NULL;
+  mrb_int n;
+
+  n = mrb_get_args(mrb, "|ii", &i, &j);
+  // call utility for unwrapping @data into p_data:
+  mrb_matrix_get_data(mrb, self, &p_mat);
+  if (n == 2) {
+    if (i >= p_mat->size1 || j >= p_mat->size2) {
+      mrb_raise(mrb, E_MATRIX_ERROR, "matrix index out of range!");
+    }
+    result = mrb_float_value(mrb, gsl_matrix_get(p_mat, (size_t)i, (size_t)j));
+  } else {
+    result = mrb_matrix_get_row(mrb, self);
+  }
+  return result;
 }
 
 static mrb_value mrb_matrix_set_ij(mrb_state *mrb, mrb_value self) {
@@ -285,7 +296,6 @@ static mrb_value mrb_matrix_set_col(mrb_state *mrb, mrb_value self) {
   return self;
 }
 
-
 #pragma mark -
 #pragma mark • Properties
 
@@ -322,7 +332,6 @@ static mrb_value mrb_matrix_min_index(mrb_state *mrb, mrb_value self) {
   mrb_ary_push(mrb, res, mrb_fixnum_value(j));
   return res;
 }
-
 
 #pragma mark -
 #pragma mark • Operations
@@ -417,8 +426,8 @@ static mrb_value mrb_matrix_transpose(mrb_state *mrb, mrb_value self) {
   gsl_matrix *p_mat, *p_mat_other;
   mrb_value args[2];
   // swap dimensions!
-  args[1] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@rows"));
-  args[0] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@cols"));
+  args[1] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@nrows"));
+  args[0] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@ncols"));
   other = mrb_obj_new(mrb, mrb_class_get(mrb, "Matrix"), 2, args);
   // call utility for unwrapping @data into p_data:
   mrb_matrix_get_data(mrb, self, &p_mat);
@@ -466,8 +475,8 @@ static mrb_value mrb_matrix_prod(mrb_state *mrb, mrb_value self) {
   mrb_matrix_get_data(mrb, self, &p_mat);
 
   if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Matrix"))) {
-    args[1] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@rows"));
-    args[0] = mrb_iv_get(mrb, other, mrb_intern_lit(mrb, "@cols"));
+    args[1] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@nrows"));
+    args[0] = mrb_iv_get(mrb, other, mrb_intern_lit(mrb, "@ncols"));
     res = mrb_obj_new(mrb, mrb_class_get(mrb, "Matrix"), 2, args);
     mrb_matrix_get_data(mrb, other, &p_mat_other);
     mrb_matrix_get_data(mrb, res, &p_mat_res);
@@ -478,7 +487,7 @@ static mrb_value mrb_matrix_prod(mrb_state *mrb, mrb_value self) {
     gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, p_mat, p_mat_other, 0.0,
                    p_mat_res);
   } else if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Vector"))) {
-    args[0] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@rows"));
+    args[0] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@nrows"));
     res = mrb_obj_new(mrb, mrb_class_get(mrb, "Vector"), 1, args);
     mrb_vector_get_data(mrb, other, &p_vec_other);
     mrb_vector_get_data(mrb, res, &p_vec_res);
@@ -491,10 +500,8 @@ static mrb_value mrb_matrix_prod(mrb_state *mrb, mrb_value self) {
   return res;
 }
 
-
 #pragma mark -
 #pragma mark • Gem setup
-
 
 void mrb_gsl_matrix_init(mrb_state *mrb) {
   struct RClass *gsl;
@@ -510,10 +517,12 @@ void mrb_gsl_matrix_init(mrb_state *mrb) {
   mrb_define_method(mrb, gsl, "identity", mrb_matrix_identity, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "rnd_fill", mrb_matrix_rnd_fill, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "===", mrb_matrix_equal, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, gsl, "[]", mrb_matrix_get_ij, MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, gsl, "[]", mrb_matrix_get_ij, MRB_ARGS_OPT(2));
   mrb_define_method(mrb, gsl, "row", mrb_matrix_get_row, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "col", mrb_matrix_get_col, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "[]=", mrb_matrix_set_ij, MRB_ARGS_REQ(3));
+  mrb_define_method(mrb, gsl, "get_row", mrb_matrix_get_row, MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, gsl, "get_col", mrb_matrix_get_col, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, gsl, "set_row", mrb_matrix_set_row, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, gsl, "set_col", mrb_matrix_set_col, MRB_ARGS_REQ(2));
 
