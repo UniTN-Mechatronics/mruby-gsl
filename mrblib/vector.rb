@@ -1,6 +1,6 @@
 #*************************************************************************#
 #                                                                         #
-# raspberry.rb - mruby gem provoding access to Raspberry Pi IOs           #
+# vector.rb - Vector class for mruby                                      #
 # Copyright (C) 2015 Paolo Bosetti                                        #
 # paolo[dot]bosetti[at]unitn.it                                           #
 # Department of Industrial Engineering, University of Trento              #

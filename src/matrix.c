@@ -1,8 +1,8 @@
 /***************************************************************************/
 /*                                                                         */
-/* play.c - mruby testing                                                  */
-/* Copyright (C) 2015 Paolo Bosetti and Matteo Ragni,                      */
-/* paolo[dot]bosetti[at]unitn.it and matteo[dot]ragni[at]unitn.it          */
+/* matrix.c - Matrix class for mruby                                       */
+/* Copyright (C) 2015 Paolo Bosetti                                        */
+/* paolo[dot]bosetti[at]unitn.it                                           */
 /* Department of Industrial Engineering, University of Trento              */
 /*                                                                         */
 /* This library is free software.  You can redistribute it and/or          */
