@@ -392,6 +392,42 @@ static mrb_value mrb_matrix_mul(mrb_state *mrb, mrb_value self) {
   return self;
 }
 
+static mrb_value mrb_matrix_prod(mrb_state *mrb, mrb_value self) {
+  mrb_value other, res;
+  gsl_matrix *p_mat, *p_mat_other, *p_mat_res;
+  gsl_vector *p_vec_other, *p_vec_res;
+  mrb_value args[2];
+  mrb_get_args(mrb, "o", &other);
+
+  // call utility for unwrapping @data into p_data:
+  mrb_matrix_get_data(mrb, self, &p_mat);
+
+  if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Matrix"))) {
+    args[1] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@nrows"));
+    args[0] = mrb_iv_get(mrb, other, mrb_intern_lit(mrb, "@ncols"));
+    res = mrb_obj_new(mrb, mrb_class_get(mrb, "Matrix"), 2, args);
+    mrb_matrix_get_data(mrb, other, &p_mat_other);
+    mrb_matrix_get_data(mrb, res, &p_mat_res);
+
+    if (p_mat->size2 != p_mat_other->size1) {
+      mrb_raise(mrb, E_MATRIX_ERROR, "matrix dimensions don't match!");
+    }
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, p_mat, p_mat_other, 0.0,
+                   p_mat_res);
+  } else if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Vector"))) {
+    args[0] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@nrows"));
+    res = mrb_obj_new(mrb, mrb_class_get(mrb, "Vector"), 1, args);
+    mrb_vector_get_data(mrb, other, &p_vec_other);
+    mrb_vector_get_data(mrb, res, &p_vec_res);
+
+    if (p_mat->size2 != p_vec_other->size) {
+      mrb_raise(mrb, E_MATRIX_ERROR, "matrix dimensions don't match!");
+    }
+    gsl_blas_dgemv(CblasNoTrans, 1.0, p_mat, p_vec_other, 0.0, p_vec_res);
+  }
+  return res;
+}
+
 static mrb_value mrb_matrix_div(mrb_state *mrb, mrb_value self) {
   mrb_value other;
   gsl_matrix *p_mat, *p_mat_other;
@@ -464,42 +500,6 @@ static mrb_value mrb_matrix_swap_cols(mrb_state *mrb, mrb_value self) {
   return self;
 }
 
-static mrb_value mrb_matrix_prod(mrb_state *mrb, mrb_value self) {
-  mrb_value other, res;
-  gsl_matrix *p_mat, *p_mat_other, *p_mat_res;
-  gsl_vector *p_vec_other, *p_vec_res;
-  mrb_value args[2];
-  mrb_get_args(mrb, "o", &other);
-
-  // call utility for unwrapping @data into p_data:
-  mrb_matrix_get_data(mrb, self, &p_mat);
-
-  if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Matrix"))) {
-    args[1] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@nrows"));
-    args[0] = mrb_iv_get(mrb, other, mrb_intern_lit(mrb, "@ncols"));
-    res = mrb_obj_new(mrb, mrb_class_get(mrb, "Matrix"), 2, args);
-    mrb_matrix_get_data(mrb, other, &p_mat_other);
-    mrb_matrix_get_data(mrb, res, &p_mat_res);
-
-    if (p_mat->size2 != p_mat_other->size1) {
-      mrb_raise(mrb, E_MATRIX_ERROR, "matrix dimensions don't match!");
-    }
-    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, p_mat, p_mat_other, 0.0,
-                   p_mat_res);
-  } else if (mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Vector"))) {
-    args[0] = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@nrows"));
-    res = mrb_obj_new(mrb, mrb_class_get(mrb, "Vector"), 1, args);
-    mrb_vector_get_data(mrb, other, &p_vec_other);
-    mrb_vector_get_data(mrb, res, &p_vec_res);
-
-    if (p_mat->size2 != p_vec_other->size) {
-      mrb_raise(mrb, E_MATRIX_ERROR, "matrix dimensions don't match!");
-    }
-    gsl_blas_dgemv(CblasNoTrans, 1.0, p_mat, p_vec_other, 0.0, p_vec_res);
-  }
-  return res;
-}
-
 #pragma mark -
 #pragma mark • Gem setup
 
@@ -533,15 +533,15 @@ void mrb_gsl_matrix_init(mrb_state *mrb) {
   mrb_define_method(mrb, gsl, "min_index", mrb_matrix_min_index,
                     MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, gsl, "add", mrb_matrix_add, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, gsl, "sub", mrb_matrix_sub, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, gsl, "mul", mrb_matrix_mul, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, gsl, "div", mrb_matrix_div, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "add!", mrb_matrix_add, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "sub!", mrb_matrix_sub, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "mul!", mrb_matrix_mul, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "div!", mrb_matrix_div, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "^", mrb_matrix_prod, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "t!", mrb_matrix_transpose_self, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "t", mrb_matrix_transpose, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "swap_rows", mrb_matrix_swap_rows,
                     MRB_ARGS_REQ(2));
   mrb_define_method(mrb, gsl, "swap_cols", mrb_matrix_swap_cols,
                     MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, gsl, "*", mrb_matrix_prod, MRB_ARGS_REQ(1));
 }

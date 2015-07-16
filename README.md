@@ -22,6 +22,15 @@ By default, GSL error messages are printed to stdout. This happens in addition t
 
 Default behavior can be reversed (i.e. no printout) by disabling the compiler switch `GSL_ERROR_MSG_PRINTOUT` in `mrbgem.rake`.
 
+## Vectors and Matrix Arithmetic Operators
+There are two types of operators for Vectors and Matrices: destructive and non destructuve. For example, `Vector#add!` sums a scalar or another vector (element-wise) to the original vector itself (so it is desctructive), and so do `Vector#sub!`, `Vector#mul!`, and `Vector#div!`. 
+
+Conversely, the corresponding methods `Vector#+`, `Vector#-`, `Vector#*`, and `Vector#/` return a new vector (non-destructive). The operator `Vector#^` returns the scalar product (a Float).
+
+Similarly, for Matrices, `Matrix#add!`, `Matrix#sub!`, `Matrix#mul!`, and `Matrix#div!` operates on the matrix performing element-wise operations with a scalar or another equally-sized Matrix. The corresponding, non-destrctive operations are `Matrix#+`, `Matrix#-`, `Matrix#*`, and `Matrix#/`. 
+
+The Matrix multiplication is obtained by `Matrix#^`, which expects another Matrix with compatible sizes, or a Vector (implicitly converted to a column-matrix).
+
 ## Vector class
 
 The `Vector` class implements a fixed-length numeric vector (using `double` values for internal storage).
@@ -31,11 +40,11 @@ v1 = Vector[1,2,3] #=> V[1,2,3]
 v2 = Vector[6,5,4] #=> V[6,5,4]
 puts v1[1]         #=> 2
 v1.to_a            #=> [1, 2, 3]
-v1.add v2          #=> V[7, 7, 7], changes v1! also Vector#sub, Vector#mul, Vector#div
+v1.add! v2         #=> v1 = V[7, 7, 7], changes v1! also Vector#sub, Vector#mul, Vector#div
 v1.sum             #=> 21, summation over all elements, also Vector#norm
 v2.max_index       #=> 0, also Vector#max, Vector#min, Vector#min_index
 v1 = Vector[1,2,3]
-v1*v2              #=> 28
+v1^v2              #=> 28
 v2.reverse!        #=> V[4,5,6]
 v2.swap!(0,2)      #=> V[6,5,4]
 ```
@@ -70,8 +79,8 @@ The `Matrix` class implements a fixed-size numeric matrix (using `double` values
 m1 = Matrix[[1,2],[-3,1]]   #=> M[[1, 2], [-3, 1]]
 m2 = Matrix[[7,-5],[-2,37]] #=> M[[7, -5], [-2, 37]]
 puts m1                     #=> fancy output
-m1 * m2                     #=> M[[3, 69], [-23, 52]]
-m1.mul 2                    #=> M[[2, 4], [-6, 2]], element-wise operators
+m1 ^ m2                     #=> M[[3, 69], [-23, 52]]
+m1.mul! 2                   #=> M[[2, 4], [-6, 2]], element-wise operators
 m1.t                        #=> M[[2, -6], [4, 2]], transpose, also Matrix#t!
 v1.to_mat                   #=> M[[1], [2], [3]]
 m1*Vector[3,4]              #=> V[22, -10]

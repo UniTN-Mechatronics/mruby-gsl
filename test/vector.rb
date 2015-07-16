@@ -14,18 +14,24 @@ assert('Vector#sum') do
   assert_equal(6) { vec.sum }
 end
 
-assert('Vector#add') do
+assert('Vector#add!') do
   v1 = Vector[1,2,3]
   v2 = Vector[3,2,1]
-  v1.add v2
+  v1.add! v2
   result = (v1 === Vector[4,4,4])
   assert_true(result)
+end
+
+assert('Vector#^') do
+  v1 = Vector[1,2,3]
+  v2 = Vector[3,2,1]
+  assert_equal(10) {v1 ^ v2}
 end
 
 assert('Vector#*') do
   v1 = Vector[1,2,3]
   v2 = Vector[3,2,1]
-  assert_equal(10) {v1 * v2}
+  assert_equal(Vector[3,4,3]) {v1 * v2}
 end
 
 assert('Vector#each_with_index') do
@@ -37,12 +43,12 @@ assert('Vector#each_with_index') do
 end
 
 
-assert('Matrix#*') do
+assert('Matrix#^') do
   m1 = Matrix[[1,2,3],[4,5,6]]
   m2 = Matrix[[1,2],[3,4],[5,6]]
   v = Vector[1,2,3]
-  assert_equal(m1 * v) { Vector[14, 32]}
-  assert_true((m1 * m2) === Matrix[[22, 28], [49, 64]])
+  assert_equal(m1 ^ v) { Vector[14, 32]}
+  assert_true((m1 ^ m2) === Matrix[[22, 28], [49, 64]])
 end
 
 assert('LUDecomp#inv') do

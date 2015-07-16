@@ -325,6 +325,9 @@ static mrb_value mrb_vector_prod(mrb_state *mrb, mrb_value self) {
   // call utility for unwrapping @data into p_data:
   mrb_vector_get_data(mrb, self, &p_vec);
   mrb_vector_get_data(mrb, other, &p_vec_other);
+  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Vector"))) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "Need a Vector!");
+  }
   if (p_vec->size != p_vec_other->size) {
     mrb_raise(mrb, E_VECTOR_ERROR, "Vector indexes don't match!");
   }
@@ -484,11 +487,11 @@ void mrb_gsl_vector_init(mrb_state *mrb) {
                     MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "min_index", mrb_vector_min_index,
                     MRB_ARGS_NONE());
-  mrb_define_method(mrb, gsl, "add", mrb_vector_add, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, gsl, "sub", mrb_vector_sub, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, gsl, "mul", mrb_vector_mul, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, gsl, "div", mrb_vector_div, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, gsl, "*", mrb_vector_prod, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "add!", mrb_vector_add, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "sub!", mrb_vector_sub, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "mul!", mrb_vector_mul, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "div!", mrb_vector_div, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, gsl, "^", mrb_vector_prod, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, gsl, "norm", mrb_vector_norm, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "sum", mrb_vector_sum, MRB_ARGS_NONE());
   mrb_define_method(mrb, gsl, "swap!", mrb_vector_swap, MRB_ARGS_REQ(2));

@@ -32,6 +32,11 @@ class Vector
   
   alias :size :length
   
+  def +(o); return self.dup.add! o; end
+  def -(o); return self.dup.sub! o; end
+  def *(o); return self.dup.mul! o; end
+  def /(o); return self.dup.div! o; end
+  
   def to_mat
     m = Matrix.new(@length, 1)
     self.each_with_index {|e,i| m[i,0] = e}

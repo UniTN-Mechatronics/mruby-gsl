@@ -32,6 +32,11 @@ class Matrix
     return m
   end
   
+  def +(o); return self.dup.add! o; end
+  def -(o); return self.dup.sub! o; end
+  def *(o); return self.dup.mul! o; end
+  def /(o); return self.dup.div! o; end
+  
   def to_a
     rows = []
     cols = []
