@@ -7,7 +7,7 @@ This is a (very) partial wrapper to GSL functions. Its main target is to provide
 To include in your custom mruby, add the following to `build_config.rb`:
 
 ```ruby
-conf.gem :github => 'UniTN-Mechatronics/mrbgems-gsl'
+conf.gem :github => 'UniTN-Mechatronics/mruby-gsl', :branch => 'master'
 ```
 
 To simply test it into a minimal mruby:
