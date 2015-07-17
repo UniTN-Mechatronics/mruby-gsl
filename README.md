@@ -1,7 +1,7 @@
 # mruby-gsl
 [![Build Status](https://travis-ci.org/UniTN-Mechatronics/mruby-gsl.svg)](https://travis-ci.org/UniTN-Mechatronics/mruby-gsl)
 
-This is a (very) partial wrapper to GSL functions. Its main target is to provide the basic functionalities for working with Matrices and Vectors.
+This is a (very) partial wrapper to [GSL functions](http://www.gnu.org/software/gsl/manual/html_node). Its main target is to provide the basic functionalities for working with Matrices and Vectors.
 
 ## Installing
 To include in your custom mruby, add the following to `build_config.rb`:
@@ -127,7 +127,7 @@ The `Matrix` class includes the Enumerable module and supports iteration via `#e
 
 ## LUDecomp
 
-LU Decomposition, for inverting matrices and solving linear systems.
+LU Decomposition, for inverting matrices and solving linear systems. See [GSL page](http://www.gnu.org/software/gsl/manual/html_node/LU-Decomposition.html).
 
 ```ruby
 m1 = Matrix[[1,2],[-3,1]] 
@@ -135,13 +135,34 @@ lu = LUDecomp.new(m1)  #=> also: lu = m1.lu
 lu.inv                 #=> M[[0.14285714285714, -0.28571428571429], [0.42857142857143, 0.14285714285714]]
 lu.solve Vector[3,-7]  #=> V[2.4285714285714, 0.28571428571429]
 lu.det                 #=> 7
+lu.matrix              #=> M[[-3, 1], [-0.33333333333333, 2.3333333333333]]
+lu.permutation         #=> [1, 0]
+lu.sign                #=> -1
 ```
+
+## QRDecomp
+
+QR Decomposition, see [GSL page](http://www.gnu.org/software/gsl/manual/html_node/QR-Decomposition.html).
+
+```ruby
+m1 = Matrix[[1,2],[-3,1]] 
+qr = m1.qr
+qr.solve Vector[3,-7]  #=> V[2.4285714285714, 0.28571428571429]
+qr.matrix              #=> M[[-3.1622776601684, 0.31622776601684], [-0.72075922005613, 2.2135943621179]]
+qr.tau                 #=> V[1.3162277660168, 0]
+m2 = Matrix[[1,2],[3,1],[5,9]]
+qr = m2.qr
+b  = Vector[7,-3, 8]
+qr.lssolve b           #=> V[-1.7294117647059, 1.9705882352941]
+qr.residuals           #=> V[4.7882352941176, 0.21764705882353, -1.0882352941176]
+```
+
+
 
 ## To Do list
 
 The following features are expected to be implemented, in order of precedence:
 
-* QR decomposition
 * SV decomposition
 * Eigensystems
 * Interpolation

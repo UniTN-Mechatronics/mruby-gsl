@@ -37,6 +37,8 @@ class Vector
   def *(o); return self.dup.mul! o; end
   def /(o); return self.dup.div! o; end
   
+  def t; return self.to_mat.t; end
+  
   def to_mat
     m = Matrix.new(@length, 1)
     self.each_with_index {|e,i| m[i,0] = e}

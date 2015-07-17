@@ -94,6 +94,8 @@ static mrb_value mrb_lu_initialize(mrb_state *mrb, mrb_value self) {
   gsl_matrix_memcpy(p_data->mat, p_mat);
   // invert in-place
   gsl_linalg_LU_decomp(p_data->mat, p_data->p, &p_data->sgn);
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@size"), mrb_fixnum_value(n));
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@sign"), mrb_fixnum_value(p_data->sgn));
 
   // Wrap struct into @data:
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "@data"), // set @data
@@ -101,6 +103,47 @@ static mrb_value mrb_lu_initialize(mrb_state *mrb, mrb_value self) {
                  Data_Wrap_Struct(mrb, mrb->object_class, &lu_decomp_data_type,
                                   p_data)));
   return mrb_nil_value();
+}
+
+#pragma mark -
+#pragma mark • Accessors
+
+static mrb_value mrb_lu_sgn(mrb_state *mrb, mrb_value self) {
+  return mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@sign"));
+}
+
+static mrb_value mrb_lu_size(mrb_state *mrb, mrb_value self) {
+  return mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@size"));
+}
+
+
+static mrb_value mrb_lu_matrix(mrb_state *mrb, mrb_value self) {
+  mrb_value result;
+  lu_decomp_data_s *p_data = NULL;
+  gsl_matrix *p_res = NULL;
+  mrb_value args[2];
+
+  // call utility for unwrapping @data into p_data:
+  mrb_lu_decomp_get_data(mrb, self, &p_data);
+  args[0] = args[1] = mrb_fixnum_value(p_data->size);
+  result = mrb_obj_new(mrb, mrb_class_get(mrb, "Matrix"), 2, args);
+  mrb_matrix_get_data(mrb, result, &p_res);
+  gsl_matrix_memcpy(p_res, p_data->mat);
+  return result;
+}
+
+static mrb_value mrb_lu_permutation(mrb_state *mrb, mrb_value self) {
+  mrb_value result;
+  lu_decomp_data_s *p_data = NULL;
+  size_t n, i;
+  
+  mrb_lu_decomp_get_data(mrb, self, &p_data);
+  n = p_data->p->size;
+  result = mrb_ary_new_capa(mrb, n);
+  for (i = 0; i < n; i++) {
+    mrb_ary_push(mrb, result, mrb_fixnum_value(p_data->p->data[i]));
+  }
+  return result;
 }
 
 
@@ -179,6 +222,10 @@ void mrb_gsl_lu_decomp_init(mrb_state *mrb) {
 
   lu = mrb_define_class(mrb, "LUDecomp", mrb->object_class);
   mrb_define_method(mrb, lu, "initialize", mrb_lu_initialize, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, lu, "size", mrb_lu_size, MRB_ARGS_NONE());
+  mrb_define_method(mrb, lu, "sign", mrb_lu_sgn, MRB_ARGS_NONE());
+  mrb_define_method(mrb, lu, "matrix", mrb_lu_matrix, MRB_ARGS_NONE());
+  mrb_define_method(mrb, lu, "permutation", mrb_lu_permutation, MRB_ARGS_NONE());
   mrb_define_method(mrb, lu, "inv", mrb_lu_invert, MRB_ARGS_NONE());
   mrb_define_method(mrb, lu, "det", mrb_lu_det, MRB_ARGS_NONE());
   mrb_define_method(mrb, lu, "solve", mrb_lu_solve, MRB_ARGS_REQ(1));

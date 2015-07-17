@@ -54,6 +54,7 @@ typedef struct {
   gsl_vector *tau;
   size_t size1;
   size_t size2;
+  size_t minsize;
 } qr_decomp_data_s;
 
 
