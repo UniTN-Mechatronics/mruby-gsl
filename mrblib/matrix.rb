@@ -23,6 +23,8 @@ class Matrix
   attr_reader :ncols, :nrows
   attr_accessor :format
   
+  alias mmul ^
+  
   def self.[](*ary)
     raise ArgumentError unless ary.kind_of? Array
     m = Matrix.new(ary.size, ary[0].size)
