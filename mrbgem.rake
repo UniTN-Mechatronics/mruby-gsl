@@ -15,5 +15,7 @@ MRuby::Gem::Specification.new('mruby-gsl') do |spec|
     spec.linker.libraries << %w|gsl gslcblas|
   else
     # complete for your case scenario
+    spec.cc.flags << %w|-DGSL_ERROR_MSG_PRINTOUT|
+    spec.linker.libraries << %w|gsl gslcblas|
   end
 end
