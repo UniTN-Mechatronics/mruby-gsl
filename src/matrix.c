@@ -312,7 +312,7 @@ static mrb_value mrb_matrix_min(mrb_state *mrb, mrb_value self) {
 }
 
 static mrb_value mrb_matrix_max_index(mrb_state *mrb, mrb_value self) {
-  unsigned long i, j;
+  size_t i, j;
   mrb_value res = mrb_ary_new_capa(mrb, 2);
   gsl_matrix *p_mat = NULL;
   mrb_matrix_get_data(mrb, self, &p_mat);
@@ -323,7 +323,7 @@ static mrb_value mrb_matrix_max_index(mrb_state *mrb, mrb_value self) {
 }
 
 static mrb_value mrb_matrix_min_index(mrb_state *mrb, mrb_value self) {
-  unsigned long i, j;
+  size_t i, j;
   mrb_value res = mrb_ary_new_capa(mrb, 2);
   gsl_matrix *p_mat = NULL;
   mrb_matrix_get_data(mrb, self, &p_mat);
